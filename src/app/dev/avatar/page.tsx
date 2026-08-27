@@ -5,6 +5,8 @@
  * uno accanto all'altro e verificare che si riconoscano a colpo d'occhio.
  */
 
+import { notFound } from 'next/navigation'
+
 import { Avatar } from '@/components/scena/Avatar'
 import { PROFESSIONI } from '@/lib/domain'
 import { PELLI, CAPELLI, TAGLI } from '@/lib/avatar/palette'
@@ -21,6 +23,9 @@ export default async function PaginaAvatar({
 }) {
   // ?grande=1 ingrandisce le figure: serve a controllare i dettagli di un
   // mestiere senza doverci mettere la faccia sopra allo schermo.
+  // pagina di servizio: non esiste in produzione
+  if (process.env.NODE_ENV === 'production') notFound()
+
   const parametri = await searchParams
   const grande = parametri.grande === '1'
   // ?solo=medico,operaio limita l'elenco: serve a guardare da vicino pochi
