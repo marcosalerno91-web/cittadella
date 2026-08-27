@@ -59,7 +59,7 @@ export function Braccia({
   /** quanta parte del braccio e' coperta dalla manica, 0..1 */
   manicaFino?: number
 }) {
-  const spessore = P.arto * 0.86
+  const spessore = Math.round(P.arto * 0.86 * 100) / 100
   const cima = P.spalleY - 2
   const fondo = P.vitaY + 10
   const finoA = cima + (fondo - cima) * manicaFino

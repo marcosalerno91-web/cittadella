@@ -19,7 +19,6 @@ import type {
   Finances,
   FortressItem,
   Session,
-  SessionBundle,
 } from '@/lib/domain'
 import type {
   AuthAdapter,

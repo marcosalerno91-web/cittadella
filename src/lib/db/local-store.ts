@@ -64,19 +64,24 @@ function percorso(): string {
   return join(base, 'cittadella.json')
 }
 
-let cache: Database | null = null
 let catena: Promise<unknown> = Promise.resolve()
 
+/**
+ * Legge sempre dal file, senza copie in memoria.
+ *
+ * Una cache a livello di modulo sembrava un'ottimizzazione ovvia ed era un
+ * errore: Next.js carica lo stesso modulo in piu' grafi (pagina e server
+ * action), ognuno con la propria copia. Chi scriveva aggiornava la sua, chi
+ * leggeva restava indietro. Il file e' piccolo: si rilegge e basta.
+ */
 async function carica(): Promise<Database> {
-  if (cache) return cache
   try {
     const testo = await readFile(percorso(), 'utf8')
     const letto = JSON.parse(testo) as Partial<Database>
-    cache = { ...vuoto(), ...letto, version: 1 }
+    return { ...vuoto(), ...letto, version: 1 }
   } catch {
-    cache = vuoto()
+    return vuoto()
   }
-  return cache
 }
 
 async function scrivi(db: Database): Promise<void> {
@@ -87,13 +92,13 @@ async function scrivi(db: Database): Promise<void> {
   await rename(temporaneo, file)
 }
 
-/** Legge lo stato corrente. Non modificare l'oggetto restituito. */
+/** Stato corrente. E' una copia: modificarla non cambia nulla su disco. */
 export async function leggi(): Promise<Database> {
   return carica()
 }
 
 /**
- * Esegue una modifica in mutua esclusione e persiste il risultato.
+ * Esegue una modifica in mutua esclusione e la persiste.
  * Ogni chiamata attende la precedente: niente scritture concorrenti sul file.
  */
 export async function muta<T>(operazione: (db: Database) => T | Promise<T>): Promise<T> {

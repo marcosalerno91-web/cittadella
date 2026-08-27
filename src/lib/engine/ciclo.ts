@@ -13,19 +13,30 @@ export function capacita(eta: number): number {
   const { fine_studio, fine_lavoro, eta_massima } = CICLO_VITA
   const e = Math.min(Math.max(eta, 0), eta_massima)
 
+  // le tre tratte si toccano: a fine studio e a fine lavoro il valore e' PLATEAU
+  // in entrambe le formule, cosi' la curva non ha gradini
   if (e <= fine_studio) {
-    // salita morbida: da 0 a 1 con un ease-in-out
-    const t = e / fine_studio
-    return t * t * (3 - 2 * t)
+    return PLATEAU * morbida(e / fine_studio)
   }
   if (e <= fine_lavoro) {
-    // plateau con una gobba appena accennata a meta' carriera
+    // gobba appena accennata a meta' carriera
     const t = (e - fine_studio) / (fine_lavoro - fine_studio)
-    return 1 - 0.08 * Math.cos(t * Math.PI * 2 - Math.PI) - 0.08
+    return PLATEAU + (1 - PLATEAU) * Math.sin(t * Math.PI)
   }
-  // discesa dolce, senza mai toccare lo zero: il tempo libero non e' il nulla
+  // discesa dolce che non tocca mai lo zero: il tempo libero non e' il nulla
   const t = (e - fine_lavoro) / (eta_massima - fine_lavoro)
-  return 0.92 * (1 - t * t * (3 - 2 * t)) * 0.6 + 0.18
+  return CODA + (PLATEAU - CODA) * (1 - morbida(t))
+}
+
+/** Quota raggiunta a fine studio e ritrovata a fine lavoro. */
+const PLATEAU = 0.92
+/** Quota a novant'anni. */
+const CODA = 0.2
+
+/** Ease-in-out: niente spigoli. */
+function morbida(t: number): number {
+  const x = Math.min(Math.max(t, 0), 1)
+  return x * x * (3 - 2 * x)
 }
 
 /** Frazione 0..1 sull'asse orizzontale. */
