@@ -1,0 +1,63 @@
+/* ------------------------------------------------------------------
+   Fogli A4 per i due report.
+   Si stampano dal browser: Ctrl/Cmd+P, "Salva come PDF".
+   Le scene sono gia' SVG, quindi vengono perfette a qualsiasi risoluzione.
+   ------------------------------------------------------------------ */
+
+@page {
+  size: A4;
+  margin: 14mm 14mm 16mm;
+}
+
+.pagina-stampa {
+  background: var(--color-sabbia);
+  padding: 10mm 0;
+}
+
+.foglio {
+  width: 182mm;
+  margin: 0 auto 10mm;
+  background: var(--color-sabbia-chiara);
+  border: 1px solid var(--color-nebbia);
+  border-radius: 6px;
+  padding: 12mm;
+  box-sizing: border-box;
+}
+
+.interruzione {
+  break-before: page;
+}
+
+.insieme {
+  break-inside: avoid;
+}
+
+@media print {
+  .solo-schermo {
+    display: none !important;
+  }
+
+  .pagina-stampa {
+    background: #fff;
+    padding: 0;
+  }
+
+  .foglio {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+  }
+
+  /* i colori sono il messaggio: mattone pieno o sagoma da costruire */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    background: #fff;
+  }
+}

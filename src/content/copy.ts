@@ -116,7 +116,7 @@ export const navigazione = {
   salvataggio: 'Salvo…',
   offline:
     'La connessione se n’e’ andata un momento. Continuate pure: tengo tutto e salvo appena torna.',
-  riprova: 'Riprova ora',
+  riprova: 'Riprovo a salvare…',
 } as const
 
 // ---------------------------------------------------------------- fase 1
@@ -505,6 +505,7 @@ export const report = {
   posizione: 'Dove siete nel ciclo della vita',
   quadro: 'Entrate, uscite e capacita’ di risparmio',
   mappa: 'La mappa delle mura',
+  mappa_scena: 'La cittadella com’e’ oggi',
   parole: 'Le loro parole',
   parole_oggi: 'Come si sente oggi',
   parole_domani: 'Come vorrebbe sentirsi',
