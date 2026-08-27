@@ -5,7 +5,7 @@
  * consulente e a decidere quali sagome proporre nella fase delle priorita'.
  */
 
-import { BLOCCHI_FORTEZZA, VOCI_FORTEZZA } from '@/config/engine'
+import { BLOCCHI_FORTEZZA } from '@/config/engine'
 import type { BloccoKey, FortressItem, StatoVoce } from '@/lib/domain'
 
 export interface StatoBlocco {
@@ -71,15 +71,4 @@ export function statoDiVoce(items: FortressItem[], voceKey: string): StatoVoce |
   return items.find((i) => i.voce_key === voceKey)?.stato ?? null
 }
 
-/** Le voci ancora da costruire: quelle 'assente' o 'non so'. Sono le sagome toccabili. */
-export function vociDaCostruire(items: FortressItem[]): string[] {
-  return VOCI_FORTEZZA.filter((v) => {
-    const stato = statoDiVoce(items, v.key)
-    return stato === 'assente' || stato === 'non_so'
-  }).map((v) => v.key)
-}
 
-/** Indice della prima voce senza risposta, nell'ordine di costruzione. -1 se finito. */
-export function primaVoceAperta(items: FortressItem[]): number {
-  return VOCI_FORTEZZA.findIndex((v) => statoDiVoce(items, v.key) === null)
-}

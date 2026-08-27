@@ -2,8 +2,6 @@
 
 import { useRef, useState } from 'react'
 
-import { euro } from '@/lib/engine/crm'
-
 interface Props {
   etichetta: string
   aiuto?: string
@@ -53,8 +51,4 @@ export function CampoEuro({ etichetta, aiuto, valore, onCambia, disabilitato, ac
       </span>
     </label>
   )
-}
-
-export function ImportoGrande({ valore, className = '' }: { valore: number; className?: string }) {
-  return <span className={`tabular-nums ${className}`}>{euro(valore)}</span>
 }
