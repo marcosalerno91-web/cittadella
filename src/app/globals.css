@@ -1,0 +1,159 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Cittadella — identita' visiva
+   Palette propria del prodotto. Non riusare altrove.
+   ------------------------------------------------------------------ */
+
+@theme {
+  --color-sabbia: #f4ede2;
+  --color-notte: #1f3a5f;
+  --color-sole: #f2b441;
+  --color-salvia: #5fa88a;
+  --color-corallo: #e2725b;
+  --color-nebbia: #c9cdd2;
+
+  /* toni derivati, usati solo per fondi e bordi tenui */
+  --color-sabbia-scura: #e7dbc9;
+  --color-sabbia-chiara: #fbf7f0;
+  --color-notte-tenue: #52678a;
+
+  --font-display: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* la scena e' lenta e morbida: il passaggio di fase e' parte del racconto */
+  --ease-scena: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+:root {
+  /* alias brevi: servono agli SVG scritti a mano, che leggono var(--salvia) */
+  --sabbia: var(--color-sabbia);
+  --notte: var(--color-notte);
+  --sole: var(--color-sole);
+  --salvia: var(--color-salvia);
+  --corallo: var(--color-corallo);
+  --nebbia: var(--color-nebbia);
+  --sabbia-scura: var(--color-sabbia-scura);
+  --sabbia-chiara: var(--color-sabbia-chiara);
+
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-sabbia);
+  color: var(--color-notte);
+  font-family: var(--font-sans);
+  /* si legge da 80 cm, in due */
+  font-size: 18px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+/* Nessun elemento interattivo sotto i 48px: si tocca su tablet, in due. */
+button,
+[role='button'],
+input,
+select,
+textarea {
+  min-height: 48px;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-sole);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------
+   Animazioni di scena (400-600ms). Tutte disattivabili.
+   ------------------------------------------------------------------ */
+
+@keyframes cittadella-entra {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cittadella-posa {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) scale(1.06);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(2px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cittadella-respiro {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.anim-entra {
+  animation: cittadella-entra 520ms var(--ease-scena) both;
+}
+
+.anim-posa {
+  animation: cittadella-posa 460ms var(--ease-scena) both;
+}
+
+.anim-respiro {
+  animation: cittadella-respiro 4.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* nasconde le spinner dei number input: usiamo stepper nostri */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

@@ -1,0 +1,72 @@
+{
+  "$commento": "Nucleo di prova usato per percorrere l'intera consulenza a mano. Non e' un dato reale.",
+  "cliente": {
+    "etichetta": "Famiglia Ferrero",
+    "note": "Primo incontro. Casa di proprieta', mutuo in corso, due figli."
+  },
+  "membri": [
+    {
+      "nome": "Marta",
+      "eta": 44,
+      "professione_key": "insegnante",
+      "ruolo_famiglia": "intestatario",
+      "avatar_seed": { "pelle": 1, "capelli": 1, "taglio": 2 }
+    },
+    {
+      "nome": "Davide",
+      "eta": 47,
+      "professione_key": "artigiano",
+      "ruolo_famiglia": "partner",
+      "avatar_seed": { "pelle": 2, "capelli": 0, "taglio": 0 }
+    },
+    {
+      "nome": "Luca",
+      "eta": 16,
+      "professione_key": "studente",
+      "ruolo_famiglia": "figlio",
+      "avatar_seed": { "pelle": 1, "capelli": 1, "taglio": 4 }
+    },
+    {
+      "nome": "Sofia",
+      "eta": 5,
+      "professione_key": "bambino",
+      "ruolo_famiglia": "figlio",
+      "avatar_seed": { "pelle": 1, "capelli": 3, "taglio": 3 }
+    },
+    {
+      "nome": "Giovanni",
+      "eta": 74,
+      "professione_key": "tempo_libero",
+      "ruolo_famiglia": "genitore",
+      "avatar_seed": { "pelle": 0, "capelli": 5, "taglio": 0 }
+    }
+  ],
+  "finanze": {
+    "redditi": { "Marta": 1850, "Davide": 2300, "Luca": 0, "Sofia": 0, "Giovanni": 1150 },
+    "rendite": { "affitti": 450, "cedole_dividendi": 60, "altre_rendite": 0 },
+    "uscite": { "casa": 980, "auto": 420, "finanziamenti": 210, "vita": 2100 }
+  },
+  "fortezza": {
+    "tcm": { "stato": "assente", "nota": "" },
+    "ltc": { "stato": "non_so", "nota": "Da verificare se e' dentro la polizza vita del 2019" },
+    "critical_illness": { "stato": "assente", "nota": "" },
+    "invalidita_permanente_grave": { "stato": "assente", "nota": "" },
+    "rimborso_spese_mediche": { "stato": "presente", "nota": "Fondo sanitario della scuola, solo su Marta" },
+    "grandi_interventi": { "stato": "presente", "nota": "Compreso nel fondo" },
+    "ipi_infortunio": { "stato": "presente", "nota": "Polizza artigiani su Davide" },
+    "assistenza": { "stato": "non_so", "nota": "" },
+    "pip": { "stato": "presente", "nota": "Solo Davide, 100 euro al mese dal 2016" },
+    "pac": { "stato": "assente", "nota": "" },
+    "premi_unici": { "stato": "assente", "nota": "" },
+    "rc_capofamiglia": { "stato": "non_so", "nota": "Forse dentro la polizza casa" },
+    "casa": { "stato": "presente", "nota": "Polizza legata al mutuo" },
+    "tutela_legale": { "stato": "assente", "nota": "" }
+  },
+  "emozioni": {
+    "sentire_attuale": "Ci pensiamo poco, e quando ci pensiamo ci diciamo che ci penseremo. Vedere tutto insieme cosi' fa un certo effetto: sulla salute siamo messi meglio di quanto credevo, ma se succede qualcosa a Davide non so davvero cosa succederebbe al mutuo.",
+    "emozioni_scelte": ["in_dubbio", "esposto", "in_attesa"],
+    "sentire_desiderato": "Vorrei andare a dormire senza fare i conti in testa. Che se domani succede qualcosa, Luca e Sofia non debbano cambiare niente della loro vita. Non mi serve essere blindato: mi serve non avere quel pensiero li'.",
+    "emozioni_desiderate": ["tranquillo", "protetto", "leggero"],
+    "priorita_dichiarate": ["tcm", "invalidita_permanente_grave", "rc_capofamiglia"]
+  }
+}
