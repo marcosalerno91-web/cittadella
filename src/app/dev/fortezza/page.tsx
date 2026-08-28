@@ -46,7 +46,10 @@ function membro(
   }
 }
 
-function voci(assegna: (voceKey: string, blocco: BloccoKey) => StatoVoce | null): FortressItem[] {
+function voci(
+  assegna: (voceKey: string, blocco: BloccoKey) => StatoVoce | null,
+  desiderate: string[] = [],
+): FortressItem[] {
   return VOCI_FORTEZZA.map((v) => ({
     id: v.key,
     session_id: 'prova',
@@ -54,6 +57,7 @@ function voci(assegna: (voceKey: string, blocco: BloccoKey) => StatoVoce | null)
     voce_key: v.key,
     stato: assegna(v.key, v.blocco),
     nota: null,
+    desiderata: desiderate.includes(v.key),
   }))
 }
 
@@ -88,7 +92,7 @@ interface Scena {
   voci: FortressItem[]
   cinteVisibili?: BloccoKey[]
   voceInCorso?: string
-  prioritarie?: string[]
+  desiderate?: string[]
   tuttoPieno?: boolean
 }
 
@@ -127,10 +131,16 @@ const SCENE: Scena[] = [
     voci: TUTTE_NON_SO,
   },
   {
-    titolo: 'Con le priorita’ toccate',
-    nota: 'Fase 5c: le costruzioni che il cliente sente come sue.',
-    voci: voci((k) => DEMO[k] ?? null),
-    prioritarie: ['tcm', 'invalidita_permanente_grave', 'rc_capofamiglia'],
+    titolo: 'La cittadella desiderata',
+    nota:
+      'Fase 5c: in salvia cio’ che c’e’ gia’, in sole le costruzioni che il cliente ha scelto.',
+    voci: voci((k) => DEMO[k] ?? null, ['tcm', 'invalidita_permanente_grave', 'rc_capofamiglia', 'pac']),
+    desiderate: ['tcm', 'invalidita_permanente_grave', 'rc_capofamiglia', 'pac'],
+  },
+  {
+    titolo: 'Desiderata tutta',
+    nota: 'Il cliente le vuole tutte. E’ una risposta come un’altra e va registrata.',
+    voci: voci((k) => DEMO[k] ?? null, VOCI_FORTEZZA.map((v) => v.key)),
   },
   {
     titolo: 'Una voce accesa',
@@ -176,7 +186,6 @@ export default async function BancoDiProva({
                 voci={scena.voci}
                 tuttoPieno={scena.tuttoPieno}
                 voceInCorso={scena.voceInCorso ?? null}
-                prioritarie={scena.prioritarie}
                 cinteVisibili={scena.cinteVisibili}
                 conEtichette={conEtichette}
                 className="h-full w-full"

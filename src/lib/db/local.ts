@@ -318,6 +318,7 @@ export const localRepository: Repository = {
           riga.stato = item.stato
           riga.nota = item.nota?.trim() || null
           riga.blocco = blocco
+          riga.desiderata = item.desiderata
         } else {
           const nuova: FortressItem = {
             id: `${sessionId}:${item.voce_key}`,
@@ -326,6 +327,7 @@ export const localRepository: Repository = {
             voce_key: item.voce_key,
             stato: item.stato,
             nota: item.nota?.trim() || null,
+            desiderata: item.desiderata,
           }
           db.fortress.push(nuova)
           esistenti.set(item.voce_key, nuova)

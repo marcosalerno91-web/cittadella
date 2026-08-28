@@ -37,7 +37,21 @@ export function FaseSituazioneOggi({ membri, voci, emozioni, onCambia, soloLettu
           <p className="mt-2 text-base text-notte/55">{copy.situazioneOggi.aiuto}</p>
         </div>
 
+        <div>
+          <h3 className="text-xl">{copy.situazioneOggi.emozioni_titolo}</h3>
+          <p className="mb-3 text-base text-notte/55">{copy.situazioneOggi.emozioni_aiuto}</p>
+          <CardEmozioni
+            insieme="oggi"
+            scelte={emozioni.emozioni_scelte}
+            disabilitato={soloLettura}
+            onCambia={(aggiorna) =>
+              onCambia((p) => ({ ...p, emozioni_scelte: aggiorna(p.emozioni_scelte) }))
+            }
+          />
+        </div>
+
         <AreaTesto
+          etichetta={copy.situazioneOggi.risposta_titolo}
           value={emozioni.sentire_attuale}
           disabled={soloLettura}
           placeholder={copy.situazioneOggi.risposta_placeholder}
@@ -45,20 +59,8 @@ export function FaseSituazioneOggi({ membri, voci, emozioni, onCambia, soloLettu
             const testo = e.target.value
             onCambia((p) => ({ ...p, sentire_attuale: testo }))
           }}
-          className="min-h-[9rem] text-lg"
+          className="min-h-[7rem] text-lg"
         />
-
-        <div>
-          <h3 className="text-xl">{copy.situazioneOggi.emozioni_titolo}</h3>
-          <p className="mb-3 text-base text-notte/55">{copy.situazioneOggi.emozioni_aiuto}</p>
-          <CardEmozioni
-            scelte={emozioni.emozioni_scelte}
-            disabilitato={soloLettura}
-            onCambia={(aggiorna) =>
-            onCambia((p) => ({ ...p, emozioni_scelte: aggiorna(p.emozioni_scelte) }))
-          }
-          />
-        </div>
       </section>
     </div>
   )
@@ -85,29 +87,29 @@ export function FaseCittadellaCompleta({
   )
 }
 
-/** 5c — La domanda che conta, e le sagome da toccare. */
-export function FaseDesiderato({ membri, voci, emozioni, onCambia, soloLettura }: Props) {
-  function alternaPriorita(voceKey: string) {
-    if (soloLettura) return
-    onCambia((precedente) => {
-      const dentro = precedente.priorita_dichiarate.includes(voceKey)
-      return {
-        ...precedente,
-        priorita_dichiarate: dentro
-          ? precedente.priorita_dichiarate.filter((k) => k !== voceKey)
-          : [...precedente.priorita_dichiarate, voceKey],
-      }
-    })
-  }
+/**
+ * 5c — La domanda che conta, e la cittadella da scegliere.
+ *
+ * E' qui che la consulenza smette di essere una fotografia: il cliente tocca
+ * le costruzioni che vorrebbe e la sua cittadella desiderata prende forma.
+ */
+export function FaseDesiderato({
+  membri,
+  voci,
+  emozioni,
+  onCambia,
+  onSceglie,
+  soloLettura,
+}: Props & { onSceglie: (voceKey: string) => void }) {
+  const scelte = voci.filter((v) => v.desiderata && v.stato !== 'presente')
 
   return (
-    <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,30rem)]">
+    <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,28rem)]">
       <section className="flex min-h-0 flex-col items-center justify-center overflow-hidden rounded-3xl border-2 border-notte/12 bg-sabbia-chiara p-4">
         <Fortezza
           membri={membri}
           voci={voci}
-          prioritarie={emozioni.priorita_dichiarate}
-          onTocca={alternaPriorita}
+          onTocca={soloLettura ? undefined : onSceglie}
           className="min-h-0 w-full flex-1"
         />
         <p className="shrink-0 pt-2 text-center text-base text-notte/55">
@@ -123,7 +125,21 @@ export function FaseDesiderato({ membri, voci, emozioni, onCambia, soloLettura }
           <p className="mt-2 text-base text-notte/55">{copy.desiderato.aiuto}</p>
         </div>
 
+        <div>
+          <h3 className="text-xl">{copy.desiderato.emozioni_titolo}</h3>
+          <p className="mb-3 text-base text-notte/55">{copy.desiderato.emozioni_aiuto}</p>
+          <CardEmozioni
+            insieme="desiderato"
+            scelte={emozioni.emozioni_desiderate}
+            disabilitato={soloLettura}
+            onCambia={(aggiorna) =>
+              onCambia((p) => ({ ...p, emozioni_desiderate: aggiorna(p.emozioni_desiderate) }))
+            }
+          />
+        </div>
+
         <AreaTesto
+          etichetta={copy.desiderato.risposta_titolo}
           value={emozioni.sentire_desiderato}
           disabled={soloLettura}
           placeholder={copy.desiderato.risposta_placeholder}
@@ -131,37 +147,24 @@ export function FaseDesiderato({ membri, voci, emozioni, onCambia, soloLettura }
             const testo = e.target.value
             onCambia((p) => ({ ...p, sentire_desiderato: testo }))
           }}
-          className="min-h-[9rem] text-lg"
+          className="min-h-[7rem] text-lg"
         />
-
-        <div>
-          <h3 className="text-xl">{copy.desiderato.emozioni_titolo}</h3>
-          <p className="mb-3 text-base text-notte/55">{copy.desiderato.emozioni_aiuto}</p>
-          <CardEmozioni
-            scelte={emozioni.emozioni_desiderate}
-            disabilitato={soloLettura}
-            onCambia={(aggiorna) =>
-            onCambia((p) => ({ ...p, emozioni_desiderate: aggiorna(p.emozioni_desiderate) }))
-          }
-          />
-        </div>
 
         <div>
           <h3 className="text-xl">{copy.desiderato.priorita_titolo}</h3>
           <p className="text-base text-notte/55">
-            {copy.desiderato.priorita_scelte.replace(
-              '{n}',
-              String(emozioni.priorita_dichiarate.length),
-            )}
+            {scelte.length === 0
+              ? copy.desiderato.priorita_nessuna
+              : copy.desiderato.priorita_scelte.replace('{n}', String(scelte.length))}
           </p>
-          {emozioni.priorita_dichiarate.length > 0 ? (
+          {scelte.length > 0 ? (
             <ul className="mt-2 flex flex-wrap gap-2">
-              {emozioni.priorita_dichiarate.map((key) => (
+              {scelte.map((v) => (
                 <li
-                  key={key}
+                  key={v.voce_key}
                   className="rounded-2xl border-2 border-sole bg-sole/25 px-4 py-1.5 text-base font-semibold"
                 >
-                  {copy.vociFortezza[key]?.nome ?? key}
+                  {copy.vociFortezzaBreve[v.voce_key] ?? v.voce_key}
                 </li>
               ))}
             </ul>

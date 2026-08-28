@@ -199,3 +199,57 @@ input[type='number'] {
 .alone {
   animation: cittadella-alone 2.1s ease-in-out infinite;
 }
+
+/* ------------------------------------------------------------------
+   I colori delle costruzioni della cittadella.
+   La stessa forma si disegna in salvia quando c'e' gia' e in sole quando il
+   cliente l'ha scelta per la cittadella che vorrebbe.
+   ------------------------------------------------------------------ */
+
+.costruzione {
+  --muro-luce: var(--salvia);
+  --muro-ombra: #4a8570;
+  --muro-tetto: var(--corallo);
+  --muro-tetto-ombra: #c25a45;
+  --muro-legno: #c08a55;
+  --muro-legno-ombra: #9a6b44;
+  --muro-acqua: #5e86a8;
+  --muro-acqua-chiara: #a8c4d8;
+
+  stroke-width: 3.4;
+}
+
+.costruzione--desiderata {
+  --muro-luce: var(--sole);
+  --muro-ombra: #d29a2f;
+  --muro-tetto: #e08a3c;
+  --muro-tetto-ombra: #c4712c;
+  --muro-legno: #e6b768;
+  --muro-legno-ombra: #c7963f;
+  --muro-acqua: #f0c46a;
+  --muro-acqua-chiara: #fae0aa;
+
+  /* contorno piu' marcato: e' una scelta, e si vede che e' una scelta */
+  stroke-width: 4.8;
+}
+
+@keyframes cittadella-sorge {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.anim-sorge {
+  animation: cittadella-sorge 520ms var(--ease-scena) both;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}

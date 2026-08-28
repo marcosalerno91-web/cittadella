@@ -33,6 +33,7 @@ export function fortezzaVuota(sessionId: string): FortressItem[] {
     voce_key: v.key,
     stato: null,
     nota: null,
+    desiderata: false,
   }))
 }
 
@@ -45,7 +46,7 @@ export function fortezzaAllineata(sessionId: string, salvate: FortressItem[]): F
   const perChiave = new Map(salvate.map((i) => [i.voce_key, i]))
   return VOCI_FORTEZZA.map((v) => {
     const esistente = perChiave.get(v.key)
-    if (esistente) return { ...esistente, blocco: v.blocco }
+    if (esistente) return { ...esistente, blocco: v.blocco, desiderata: esistente.desiderata ?? false }
     return {
       id: `${sessionId}:${v.key}`,
       session_id: sessionId,
@@ -53,6 +54,7 @@ export function fortezzaAllineata(sessionId: string, salvate: FortressItem[]): F
       voce_key: v.key,
       stato: null,
       nota: null,
+      desiderata: false,
     }
   })
 }

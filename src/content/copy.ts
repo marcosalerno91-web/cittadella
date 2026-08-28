@@ -460,10 +460,10 @@ export const vociFortezzaBreve: Record<string, string> = {
 export const situazioneOggi = {
   domanda: 'Come ti fa sentire questa situazione?',
   aiuto: 'Non c’e’ una risposta giusta. Qui parla lui.',
-  risposta_placeholder: 'Scrivi con le sue parole…',
   emozioni_titolo: 'Scegliete fino a tre parole',
   emozioni_aiuto: 'Quelle che gli somigliano di piu’ in questo momento.',
-  richiesta_risposta: 'Prima di andare avanti, scrivi cosa ti ha detto.',
+  risposta_titolo: 'Le sue parole, se vuoi trascriverle',
+  risposta_placeholder: 'Facoltativo. Quello che ha detto, come l’ha detto…',
 } as const
 
 export const cittadellaCompleta = {
@@ -476,36 +476,96 @@ export const cittadellaCompleta = {
 export const desiderato = {
   domanda: 'Ma tu, come vorresti sentirti?',
   aiuto: 'E’ la domanda che conta. Prenditi il tempo di ascoltare tutta la risposta.',
-  risposta_placeholder: 'Scrivi con le sue parole…',
   emozioni_titolo: 'Scegliete fino a tre parole',
   emozioni_aiuto: 'Come vorrebbe sentirsi.',
-  priorita_titolo: 'Da dove vorrebbe cominciare',
+  risposta_titolo: 'Le sue parole, se vuoi trascriverle',
+  risposta_placeholder: 'Facoltativo. La frase esatta vale piu’ di qualsiasi carta…',
+  priorita_titolo: 'La cittadella che vorreste',
   priorita_aiuto:
-    'Toccate insieme le parti ancora da costruire che sente piu’ sue. Anche nessuna va benissimo.',
+    'Toccate insieme le costruzioni che vorreste avere: si alzano in giallo. Quelle che ci sono gia’ restano dove sono. Anche nessuna va benissimo.',
   priorita_scelte: '{n} scelte',
-  richiesta_risposta: 'Prima di chiudere, scrivi cosa ti ha detto.',
+  priorita_nessuna: 'Nessuna, per ora.',
 } as const
 
+/**
+ * Un'emozione da scegliere.
+ *
+ * `direzione` e `ordine` non si vedono mai a schermo: sono metadato per il
+ * consulente, e riemergono solo nel suo dossier. Il cliente vede una parola.
+ *
+ * Le parole vengono dal lavoro del consulente sul metodo Emotional Power di
+ * Antonio Meleleo. Qui ci sono solo singoli termini: la mappa, il suo schema e
+ * le sue diciture non entrano nell'applicazione ne' a schermo ne' nei PDF.
+ */
 export interface Emozione {
-  key: string
-  label: string
-  famiglia: 'serena' | 'tesa'
+  chiave: string
+  etichetta: string
+  /**
+   * Se l'emozione avvicina la persona a cio' che ha davanti, se la allontana,
+   * o se la lascia ferma (rassegnazione, sottomissione).
+   */
+  direzione: 'avvicina' | 'allontana' | 'ferma'
+  ordine: 'primaria' | 'secondaria'
 }
 
-export const emozioni: readonly Emozione[] = [
-  { key: 'sereno', label: 'Sereno', famiglia: 'serena' },
-  { key: 'protetto', label: 'Protetto', famiglia: 'serena' },
-  { key: 'tranquillo', label: 'Tranquillo', famiglia: 'serena' },
-  { key: 'fiducioso', label: 'Fiducioso', famiglia: 'serena' },
-  { key: 'leggero', label: 'Leggero', famiglia: 'serena' },
-  { key: 'in_pace', label: 'In pace', famiglia: 'serena' },
-  { key: 'in_dubbio', label: 'In dubbio', famiglia: 'tesa' },
-  { key: 'esposto', label: 'Esposto', famiglia: 'tesa' },
-  { key: 'in_attesa', label: 'In attesa', famiglia: 'tesa' },
-  { key: 'preoccupato', label: 'Preoccupato', famiglia: 'tesa' },
-  { key: 'sospeso', label: 'Sospeso', famiglia: 'tesa' },
-  { key: 'di_corsa', label: 'Sempre di corsa', famiglia: 'tesa' },
+/**
+ * Domanda 1 — "Come ti fa sentire questa situazione?"
+ * Sette che avvicinano, sette che allontanano o fermano: deve esserci spazio
+ * per ogni risposta onesta.
+ */
+export const emozioniOggi: readonly Emozione[] = [
+  { chiave: 'sicurezza', etichetta: 'Sicurezza', direzione: 'avvicina', ordine: 'primaria' },
+  { chiave: 'serenita', etichetta: 'Serenita’', direzione: 'avvicina', ordine: 'primaria' },
+  { chiave: 'aspettativa', etichetta: 'Aspettativa', direzione: 'avvicina', ordine: 'primaria' },
+  { chiave: 'fiducia', etichetta: 'Fiducia', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'speranza', etichetta: 'Speranza', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'interesse', etichetta: 'Interesse', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'orgoglio', etichetta: 'Orgoglio', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'apprensione', etichetta: 'Apprensione', direzione: 'allontana', ordine: 'secondaria' },
+  { chiave: 'ansia', etichetta: 'Ansia', direzione: 'allontana', ordine: 'secondaria' },
+  { chiave: 'paura', etichetta: 'Paura', direzione: 'allontana', ordine: 'primaria' },
+  { chiave: 'frustrazione', etichetta: 'Frustrazione', direzione: 'allontana', ordine: 'primaria' },
+  { chiave: 'senso_di_colpa', etichetta: 'Senso di colpa', direzione: 'allontana', ordine: 'primaria' },
+  { chiave: 'rimpianto', etichetta: 'Rimpianto', direzione: 'allontana', ordine: 'secondaria' },
+  { chiave: 'rassegnazione', etichetta: 'Rassegnazione', direzione: 'ferma', ordine: 'secondaria' },
 ] as const
+
+/**
+ * Domanda 2 — "Ma tu, come vorresti sentirti?"
+ * Tutte di direzione 'avvicina': nessuno desidera sentirsi in ansia. Questa
+ * griglia e' la direzione del percorso, non un secondo inventario.
+ */
+export const emozioniDesiderate: readonly Emozione[] = [
+  { chiave: 'sicurezza', etichetta: 'Sicurezza', direzione: 'avvicina', ordine: 'primaria' },
+  { chiave: 'serenita', etichetta: 'Serenita’', direzione: 'avvicina', ordine: 'primaria' },
+  { chiave: 'amore', etichetta: 'Amore', direzione: 'avvicina', ordine: 'primaria' },
+  { chiave: 'gioia', etichetta: 'Gioia', direzione: 'avvicina', ordine: 'primaria' },
+  { chiave: 'accettazione', etichetta: 'Accettazione', direzione: 'avvicina', ordine: 'primaria' },
+  { chiave: 'allegria', etichetta: 'Allegria', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'fiducia', etichetta: 'Fiducia', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'speranza', etichetta: 'Speranza', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'ottimismo', etichetta: 'Ottimismo', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'coraggio', etichetta: 'Coraggio', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'orgoglio', etichetta: 'Orgoglio', direzione: 'avvicina', ordine: 'secondaria' },
+  { chiave: 'gratitudine', etichetta: 'Gratitudine', direzione: 'avvicina', ordine: 'secondaria' },
+] as const
+
+export type InsiemeEmozioni = 'oggi' | 'desiderato'
+
+export function emozioniDi(insieme: InsiemeEmozioni): readonly Emozione[] {
+  return insieme === 'oggi' ? emozioniOggi : emozioniDesiderate
+}
+
+export function emozioneDi(insieme: InsiemeEmozioni, chiave: string): Emozione | undefined {
+  return emozioniDi(insieme).find((e) => e.chiave === chiave)
+}
+
+/** Come si legge una direzione nel dossier del consulente. */
+export const direzioni: Record<Emozione['direzione'], string> = {
+  avvicina: 'avvicina',
+  allontana: 'allontana',
+  ferma: 'ferma',
+}
 
 export const chiusura = {
   titolo: 'Ci sentiamo entro pochi giorni',
@@ -541,11 +601,18 @@ export const report = {
   quadro: 'Entrate, uscite e capacita’ di risparmio',
   mappa: 'La mappa delle mura',
   mappa_scena: 'La cittadella com’e’ oggi',
+  mappa_desiderata: 'La vostra cittadella, e quella che vorreste',
   parole: 'Le loro parole',
   parole_oggi: 'Come si sente oggi',
   parole_domani: 'Come vorrebbe sentirsi',
   priorita: 'Da dove vorrebbe cominciare',
   appunti: 'Appunti',
+  desiderata: 'La cittadella che vorrebbe',
+  desiderata_nota: 'Le costruzioni che il cliente ha scelto. E’ l’ordine di lavoro per i prospetti.',
+  desiderata_nessuna: 'Non ha scelto nessuna costruzione.',
+  gia_presenti: 'Gia’ in piedi',
+  movimento: 'Il movimento',
+  movimento_nessuno: 'Non abbastanza parole per leggere uno spostamento.',
   cliente_chiusura: 'Fra 48-72 ore arrivano due o tre strade possibili, costruite su queste parole.',
   nessuna_nota: '—',
   generato_il: 'Incontro del',

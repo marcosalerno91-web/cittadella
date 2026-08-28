@@ -9,10 +9,11 @@
 import { VOCI_FORTEZZA, faseVita, livelloScorta } from '@/config/engine'
 import { calcolaCrm } from '@/lib/engine/crm'
 import { completamentoPesato, statoTutteLeCinte } from '@/lib/engine/fortezza'
+import { leggiSpostamento } from '@/lib/engine/emozioni'
 import * as copy from '@/content/copy'
 import type { SessionBundle, StatoVoce } from '@/lib/domain'
 
-export const SCHEMA_VERSION = '1.0.0'
+export const SCHEMA_VERSION = '1.1.0'
 
 export interface ExportSessione {
   schema_version: string
@@ -70,16 +71,40 @@ export interface ExportSessione {
       sigla: string | null
       stato: StatoVoce | null
       nota: string | null
-      prioritaria: boolean
+      /** il cliente vuole questa costruzione nella propria cittadella */
+      desiderata: boolean
     }[]
   }
   emozioni: {
     sentire_attuale: string
-    emozioni_scelte: { key: string; label: string; famiglia: string }[]
+    emozioni_scelte: DescrizioneEmozione[]
     sentire_desiderato: string
-    emozioni_desiderate: { key: string; label: string; famiglia: string }[]
-    priorita_dichiarate: { voce_key: string; nome: string; blocco: string }[]
+    emozioni_desiderate: DescrizioneEmozione[]
+    /** lo spostamento fra come si sente e come vorrebbe sentirsi */
+    movimento: {
+      quante_allontanano: number
+      quante_avvicinano: number
+      frase: string
+    }
   }
+  /** la somma di cio' che c'e' gia' e di cio' che il cliente ha scelto */
+  cittadella_desiderata: {
+    gia_presenti: RiferimentoVoce[]
+    scelte: RiferimentoVoce[]
+  }
+}
+
+export interface DescrizioneEmozione {
+  chiave: string
+  etichetta: string
+  direzione: string
+  ordine: string
+}
+
+export interface RiferimentoVoce {
+  voce_key: string
+  nome: string
+  blocco: string
 }
 
 export function costruisciExport(bundle: SessionBundle, generatoIl: string): ExportSessione {
@@ -88,8 +113,16 @@ export function costruisciExport(bundle: SessionBundle, generatoIl: string): Exp
     rendite: bundle.finances.rendite,
     uscite: bundle.finances.uscite,
   })
-  const priorita = new Set(bundle.emotions.priorita_dichiarate)
   const nomiMembri = new Map(bundle.members.map((m) => [m.id, m.nome]))
+  const spostamento = leggiSpostamento(
+    bundle.emotions.emozioni_scelte,
+    bundle.emotions.emozioni_desiderate,
+  )
+  const riferimento = (voceKey: string): RiferimentoVoce => ({
+    voce_key: voceKey,
+    nome: copy.vociFortezza[voceKey]?.nome ?? voceKey,
+    blocco: VOCI_FORTEZZA.find((v) => v.key === voceKey)?.blocco ?? '',
+  })
 
   return {
     schema_version: SCHEMA_VERSION,
@@ -154,27 +187,40 @@ export function costruisciExport(bundle: SessionBundle, generatoIl: string): Exp
           sigla: testi?.sigla ?? null,
           stato: riga?.stato ?? null,
           nota: riga?.nota ?? null,
-          prioritaria: priorita.has(v.key),
+          desiderata: riga?.desiderata ?? false,
         }
       }),
     },
     emozioni: {
       sentire_attuale: bundle.emotions.sentire_attuale,
-      emozioni_scelte: bundle.emotions.emozioni_scelte.map(descriviEmozione),
+      emozioni_scelte: bundle.emotions.emozioni_scelte.map((k) => descrivi('oggi', k)),
       sentire_desiderato: bundle.emotions.sentire_desiderato,
-      emozioni_desiderate: bundle.emotions.emozioni_desiderate.map(descriviEmozione),
-      priorita_dichiarate: bundle.emotions.priorita_dichiarate.map((key) => ({
-        voce_key: key,
-        nome: copy.vociFortezza[key]?.nome ?? key,
-        blocco: VOCI_FORTEZZA.find((v) => v.key === key)?.blocco ?? '',
-      })),
+      emozioni_desiderate: bundle.emotions.emozioni_desiderate.map((k) => descrivi('desiderato', k)),
+      movimento: {
+        quante_allontanano: spostamento.quanteVia,
+        quante_avvicinano: spostamento.quanteVerso,
+        frase: spostamento.frase,
+      },
+    },
+    cittadella_desiderata: {
+      gia_presenti: bundle.fortress
+        .filter((f) => f.stato === 'presente')
+        .map((f) => riferimento(f.voce_key)),
+      scelte: bundle.fortress
+        .filter((f) => f.desiderata && f.stato !== 'presente')
+        .map((f) => riferimento(f.voce_key)),
     },
   }
 }
 
-function descriviEmozione(key: string): { key: string; label: string; famiglia: string } {
-  const trovata = copy.emozioni.find((e) => e.key === key)
-  return { key, label: trovata?.label ?? key, famiglia: trovata?.famiglia ?? '' }
+function descrivi(insieme: copy.InsiemeEmozioni, chiave: string): DescrizioneEmozione {
+  const trovata = copy.emozioneDi(insieme, chiave)
+  return {
+    chiave,
+    etichetta: trovata?.etichetta ?? chiave,
+    direzione: trovata?.direzione ?? '',
+    ordine: trovata?.ordine ?? '',
+  }
 }
 
 /** Nome file suggerito: leggibile e ordinabile. */

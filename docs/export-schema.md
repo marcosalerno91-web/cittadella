@@ -1,6 +1,6 @@
 # Schema dell'export JSON
 
-Versione corrente: **1.0.0**
+Versione corrente: **1.1.0**
 
 L'export si scarica da `GET /api/sessione/<id>/export` e dalla schermata di
 chiusura della sessione. Serve al consulente per alimentare i propri strumenti
@@ -23,7 +23,7 @@ riconosce, invece di indovinare.
 
 ```jsonc
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "generato_il": "2026-08-27T15:04:05.000Z",   // ISO 8601 UTC
 
   "sessione": {
@@ -97,23 +97,44 @@ riconosce, invece di indovinare.
         "blocco": "mastio",
         "nome": "Una polizza che protegge chi resta",
         "sigla": "TCM — Temporanea Caso Morte" | null,
-        "stato": "presente" | "assente" | "non_so" | null,
+        "stato": "presente" | "assente" | "non_so" | null,   // cosa ha oggi
         "nota": "appunto del consulente" | null,
-        "prioritaria": true
+        "desiderata": true                                    // cosa vuole
       }
     ]
   },
 
-  "emozioni": {
-    "sentire_attuale": "testo libero, parole del cliente",
-    "emozioni_scelte": [
-      { "key": "in_dubbio", "label": "In dubbio", "famiglia": "serena" | "tesa" }
+  // La somma di cio' che c'e' gia' e di cio' che il cliente ha scelto.
+  // E' l'ordine di lavoro per i prospetti.
+  "cittadella_desiderata": {
+    "gia_presenti": [
+      { "voce_key": "casa", "nome": "La casa", "blocco": "perimetro" }
     ],
-    "sentire_desiderato": "testo libero, parole del cliente",
-    "emozioni_desiderate": [ /* stessa forma */ ],
-    "priorita_dichiarate": [
+    "scelte": [
       { "voce_key": "tcm", "nome": "Una polizza che protegge chi resta", "blocco": "mastio" }
     ]
+  },
+
+  "emozioni": {
+    // il testo libero e' facoltativo dalla v1.2: puo' essere una stringa vuota
+    "sentire_attuale": "testo libero, parole del cliente",
+    "emozioni_scelte": [
+      {
+        "chiave": "apprensione",
+        "etichetta": "Apprensione",
+        "direzione": "avvicina" | "allontana" | "ferma",
+        "ordine": "primaria" | "secondaria"
+      }
+    ],
+    "sentire_desiderato": "testo libero, parole del cliente",
+    "emozioni_desiderate": [ /* stessa forma, tutte di direzione "avvicina" */ ],
+
+    // lo spostamento fra come si sente e come vorrebbe sentirsi
+    "movimento": {
+      "quante_allontanano": 2,
+      "quante_avvicinano": 1,
+      "frase": "da 2 che allontanano e 1 che avvicina verso 3 emozioni che avvicinano."
+    }
   }
 }
 ```
@@ -128,15 +149,34 @@ riconosce, invece di indovinare.
 ## Chiavi stabili
 
 `voce_key`, `professione_key`, `ruolo_famiglia`, `blocco`, `stato`,
-`livello_scorta`, `fase_vita` e le chiavi di `rendite` e `uscite` sono
-identificatori stabili: si puo' scriverci sopra della logica.
+`direzione`, `ordine`, `livello_scorta`, `fase_vita` e le chiavi di `rendite` e
+`uscite` sono identificatori stabili: si puo' scriverci sopra della logica.
+
+Le `chiave` delle emozioni **non** sono stabili allo stesso modo: i due elenchi
+in `copy.ts` sono materiale di lavoro del consulente e cambieranno. Leggi
+`etichetta` e `direzione`, non la chiave.
 
 I campi `nome`, `sigla`, `titolo` e `label` sono invece testi presi da
 `src/content/copy.ts` e possono cambiare a ogni riscrittura dei testi: servono
 a rendere leggibile l'export, non a essere confrontati.
 
+## Cosa e' cambiato nella 1.1.0
+
+- ogni voce della fortezza ha `desiderata` (booleano) al posto di `prioritaria`
+- nuova sezione `cittadella_desiderata`
+- le emozioni hanno `chiave`, `etichetta`, `direzione`, `ordine` al posto di
+  `key`, `label`, `famiglia`
+- nuova sezione `emozioni.movimento`
+- sparisce `emozioni.priorita_dichiarate`, sostituita da `cittadella_desiderata.scelte`
+
+E' una **minor** e non una major perche' chi leggeva la 1.0.0 trova tutti i
+campi che gli servivano, con nomi nuovi solo dove il significato e' cambiato.
+Chi confrontava le chiavi delle emozioni deve adeguarsi: quelle non erano
+stabili nemmeno prima.
+
 ## Ordinamento
 
 `nucleo` segue `ordine`. `fortezza.voci` e `fortezza.cinte` seguono l'ordine di
 costruzione definito in `src/config/engine.ts`, dal mastio verso l'esterno.
-`priorita_dichiarate` segue l'ordine in cui il cliente ha toccato le sagome.
+`cittadella_desiderata.scelte` segue l'ordine di costruzione, non quello in cui
+il cliente ha toccato le costruzioni.

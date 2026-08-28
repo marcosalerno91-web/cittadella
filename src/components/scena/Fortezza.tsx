@@ -51,9 +51,10 @@ export interface PropsFortezza {
   tuttoPieno?: boolean
   /** voce in discussione: si accende, il resto scende di saturazione */
   voceInCorso?: string | null
-  /** voci che il cliente ha indicato come prioritarie */
-  prioritarie?: string[]
-  /** rende toccabili le costruzioni ancora da alzare */
+  /**
+   * Rende toccabile ogni costruzione che non c'e' gia'.
+   * E' cosi' che il cliente sceglie la cittadella che vorrebbe.
+   */
   onTocca?: (voceKey: string) => void
   /** blocchi gia' raggiunti: i successivi non si disegnano ancora */
   cinteVisibili?: BloccoKey[]
@@ -67,7 +68,6 @@ export function Fortezza({
   className = '',
   tuttoPieno = false,
   voceInCorso = null,
-  prioritarie = [],
   onTocca,
   cinteVisibili,
   conEtichette = true,
@@ -77,6 +77,13 @@ export function Fortezza({
   function statoDi(voceKey: string): StatoVoce | null {
     if (tuttoPieno) return 'presente'
     return voci.find((v) => v.voce_key === voceKey)?.stato ?? null
+  }
+
+  /** Il cliente vuole questa costruzione. Vale solo per cio' che non c'e' gia'. */
+  function desiderata(voceKey: string): boolean {
+    if (tuttoPieno) return false
+    if (statoDi(voceKey) === 'presente') return false
+    return voci.find((v) => v.voce_key === voceKey)?.desiderata ?? false
   }
 
   // ------------------------------------------------------- inquadratura
@@ -92,7 +99,7 @@ export function Fortezza({
 
   for (const c of presenti) {
     const stato = statoDi(c.voceKey)
-    const prioritaria = prioritarie.includes(c.voceKey)
+    const scelta = desiderata(c.voceKey)
 
     if (c.anello) {
       for (const tratto of spezzaArco(c.anello.da, c.anello.a)) {
@@ -101,12 +108,7 @@ export function Fortezza({
           profondita: profonditaArco(c.anello.raggio, tratto.da, tratto.a),
           nodo: (
             <g key={`${c.voceKey}-${tratto.da}`} className={classeDi(c.voceKey, voceInCorso)}>
-              <TrattoDiAnello
-                costruzione={c}
-                tratto={tratto}
-                stato={stato}
-                prioritaria={prioritaria}
-              />
+              <TrattoDiAnello costruzione={c} tratto={tratto} stato={stato} scelta={scelta} />
             </g>
           ),
         })
@@ -119,7 +121,7 @@ export function Fortezza({
       profondita: c.v,
       nodo: (
         <g key={c.voceKey} className={classeDi(c.voceKey, voceInCorso)}>
-          <Edificio costruzione={c} stato={stato} prioritaria={prioritaria} />
+          <Edificio costruzione={c} stato={stato} scelta={scelta} />
         </g>
       ),
     })
@@ -197,13 +199,13 @@ export function Fortezza({
       {/* le zone toccabili, invisibili, sopra a tutto il resto */}
       {onTocca
         ? presenti.map((c) => {
-            const stato = statoDi(c.voceKey)
-            if (stato === null || stato === 'presente') return null
+            // cio' che c'e' gia' non si tocca: e' gia' nella cittadella
+            if (statoDi(c.voceKey) === 'presente') return null
             return (
               <ZonaToccabile
                 key={`tocco-${c.voceKey}`}
                 costruzione={c}
-                prioritaria={prioritarie.includes(c.voceKey)}
+                scelta={desiderata(c.voceKey)}
                 onTocca={() => onTocca(c.voceKey)}
               />
             )
@@ -225,39 +227,39 @@ function classeDi(voceKey: string, voceInCorso: string | null): string {
 
 // ---------------------------------------------------------------- pezzi
 
-/** Un edificio: torre, pozzo, granaio, deposito, portone. */
+/**
+ * Un edificio: torre, pozzo, granaio, deposito, portone.
+ *
+ * Tre stati che si devono leggere a colpo d'occhio da 80 cm:
+ *   presente             in piedi, colore salvia
+ *   scelta dal cliente   in piedi, colore sole, contorno marcato, sorge
+ *   ancora da costruire   traccia a terra
+ */
 function Edificio({
   costruzione: c,
   stato,
-  prioritaria,
+  scelta,
 }: {
   costruzione: Costruzione
   stato: StatoVoce | null
-  prioritaria: boolean
+  scelta: boolean
 }) {
   const base = proietta(c.u, c.v)
+  const inPiedi = stato === 'presente' || scelta
 
-  if (stato === null || stato === 'assente') {
-    return (
-      <g>
-        <Fondazione costruzione={c} prioritaria={prioritaria} tratteggiata={stato === 'assente'} />
-        {prioritaria ? (
-          <Bollo
-            x={base.x}
-            y={arrotonda(base.y - (c.ingombro.profondita * SCHIACCIA) / 2 - 12)}
-          />
-        ) : null}
-      </g>
-    )
+  if (!inPiedi) {
+    return <Fondazione costruzione={c} tratteggiata={stato === 'assente'} />
   }
 
   return (
-    <g className="anim-posa" opacity={stato === 'non_so' ? 0.6 : 1}>
+    <g
+      className={`costruzione ${scelta ? 'costruzione--desiderata anim-sorge' : 'anim-posa'}`}
+      opacity={stato === 'non_so' && !scelta ? 0.6 : 1}
+    >
       <g transform={`translate(${base.x} ${base.y})`}>{corpoDi(c)}</g>
-      {stato === 'non_so' ? (
+      {stato === 'non_so' && !scelta ? (
         <PuntoInterrogativo x={base.x} y={arrotonda(base.y - c.altezza - 18)} />
       ) : null}
-      {prioritaria ? <Bollo x={base.x} y={arrotonda(base.y - c.altezza - 26)} /> : null}
     </g>
   )
 }
@@ -267,36 +269,28 @@ function TrattoDiAnello({
   costruzione: c,
   tratto,
   stato,
-  prioritaria,
+  scelta,
 }: {
   costruzione: Costruzione
   tratto: { da: number; a: number }
   stato: StatoVoce | null
-  prioritaria: boolean
+  scelta: boolean
 }) {
   if (!c.anello) return null
   const base = proietta(c.u, c.v)
+  const inPiedi = stato === 'presente' || scelta
 
-  if (stato === null || stato === 'assente') {
-    return (
-      <g>
-        <TracciaAnello
-          costruzione={c}
-          tratto={tratto}
-          prioritaria={prioritaria}
-          tratteggiata={stato === 'assente'}
-        />
-        {prioritaria && tratto.da <= (c.anello.da + c.anello.a) / 2 && tratto.a >= (c.anello.da + c.anello.a) / 2 ? (
-          <Bollo x={base.x} y={arrotonda(base.y - 14)} />
-        ) : null}
-      </g>
-    )
+  if (!inPiedi) {
+    return <TracciaAnello costruzione={c} tratto={tratto} tratteggiata={stato === 'assente'} />
   }
 
   const passaIlPonte = tratto.da <= 180 && tratto.a >= 180
 
   return (
-    <g className="anim-posa" opacity={stato === 'non_so' ? 0.6 : 1}>
+    <g
+      className={`costruzione ${scelta ? 'costruzione--desiderata anim-sorge' : 'anim-posa'}`}
+      opacity={stato === 'non_so' && !scelta ? 0.6 : 1}
+    >
       <g transform={`translate(${base.x} ${base.y})`}>
         {c.tipo === 'fossato' ? (
           <Fossato
@@ -341,9 +335,7 @@ function corpoDi(c: Costruzione): React.ReactNode {
   }
 }
 
-function Bollo({ x, y }: { x: number; y: number }) {
-  return <circle cx={x} cy={y} r={10} fill="var(--sole)" stroke={NOTTE} strokeWidth={3.4} />
-}
+
 
 /**
  * La costruzione non ancora affrontata, o quella che non c'e'.
@@ -353,18 +345,16 @@ function Bollo({ x, y }: { x: number; y: number }) {
  */
 function Fondazione({
   costruzione: c,
-  prioritaria,
   tratteggiata,
 }: {
   costruzione: Costruzione
-  prioritaria: boolean
   tratteggiata: boolean
 }) {
   const base = proietta(c.u, c.v)
   const colore = tratteggiata ? 'var(--corallo)' : NOTTE
   const comune = {
-    fill: prioritaria ? 'var(--corallo)' : colore,
-    fillOpacity: prioritaria ? 0.22 : 0.04,
+    fill: colore,
+    fillOpacity: 0.04,
     stroke: colore,
     strokeWidth: tratteggiata ? 3 : 2.4,
     strokeOpacity: tratteggiata ? 0.75 : 0.28,
@@ -389,12 +379,10 @@ function Fondazione({
 function TracciaAnello({
   costruzione: c,
   tratto,
-  prioritaria,
   tratteggiata,
 }: {
   costruzione: Costruzione
   tratto: { da: number; a: number }
-  prioritaria: boolean
   tratteggiata: boolean
 }) {
   if (!c.anello) return null
@@ -406,14 +394,6 @@ function TracciaAnello({
   // Cosi' resta il tracciato di un cantiere.
   return (
     <g transform={`translate(${base.x} ${base.y})`}>
-      {prioritaria ? (
-        <path
-          d={traccia(c, c.tipo === 'fossato' ? LARGHEZZA_FOSSATO : 26, tratto)}
-          fill="var(--corallo)"
-          fillOpacity={0.2}
-          stroke="none"
-        />
-      ) : null}
       <path
         d={lineaAnello(c, tratto)}
         fill="none"
@@ -476,11 +456,11 @@ function Etichetta({
 /** Il bersaglio del tocco: invisibile, ma grande abbastanza per due dita. */
 function ZonaToccabile({
   costruzione: c,
-  prioritaria,
+  scelta,
   onTocca,
 }: {
   costruzione: Costruzione
-  prioritaria: boolean
+  scelta: boolean
   onTocca: () => void
 }) {
   const base = proietta(c.u, c.v)
@@ -495,7 +475,7 @@ function ZonaToccabile({
         role="button"
         tabIndex={0}
         aria-label={nome}
-        aria-pressed={prioritaria}
+        aria-pressed={scelta}
         cursor="pointer"
         onClick={onTocca}
         onKeyDown={(e) => {
@@ -523,7 +503,7 @@ function ZonaToccabile({
       role="button"
       tabIndex={0}
       aria-label={nome}
-      aria-pressed={prioritaria}
+      aria-pressed={scelta}
       cursor="pointer"
       onClick={onTocca}
       onKeyDown={(e) => {

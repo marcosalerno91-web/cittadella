@@ -1,63 +1,68 @@
 'use client'
 
 import { MAX_EMOZIONI } from '@/config/engine'
-import { emozioni as tutte } from '@/content/copy'
-import type { Emozione } from '@/content/copy'
-
-/** Un piccolo segno illustrato per ciascuna famiglia di emozioni. */
-function Segno({ famiglia, scelta }: { famiglia: Emozione['famiglia']; scelta: boolean }) {
-  const colore = scelta ? 'var(--notte)' : famiglia === 'serena' ? 'var(--salvia)' : 'var(--corallo)'
-  return (
-    <svg viewBox="0 0 48 48" className="h-11 w-11" fill="none" strokeLinecap="round">
-      <circle cx="24" cy="24" r="18" stroke={colore} strokeWidth="3.4" />
-      <circle cx="18" cy="21" r="2.2" fill={colore} />
-      <circle cx="30" cy="21" r="2.2" fill={colore} />
-      {famiglia === 'serena' ? (
-        <path d="M17 29 q7 7 14 0" stroke={colore} strokeWidth="3.2" />
-      ) : (
-        <path d="M17 31 h14" stroke={colore} strokeWidth="3.2" />
-      )}
-    </svg>
-  )
-}
+import { emozioniDi } from '@/content/copy'
+import type { InsiemeEmozioni } from '@/content/copy'
 
 interface Props {
+  /** i due momenti pescano da due insiemi diversi */
+  insieme: InsiemeEmozioni
   scelte: string[]
   /** riceve la trasformazione da applicare, non il risultato gia' calcolato */
   onCambia: (aggiorna: (precedenti: string[]) => string[]) => void
   disabilitato?: boolean
 }
 
-export function CardEmozioni({ scelte, onCambia, disabilitato = false }: Props) {
-  function alterna(key: string) {
+/**
+ * Le emozioni si scelgono da una griglia di carte.
+ *
+ * Le carte sono tutte identiche: nessuna icona, nessuna faccina, e soprattutto
+ * nessun colore per direzione. Se il cliente vedesse che "paura" e' rossa e
+ * "sicurezza" verde risponderebbe a un test invece di dire come sta.
+ *
+ * La griglia regge da otto a sedici carte senza cambiare impaginazione: gli
+ * elenchi in copy.ts cambieranno.
+ */
+export function CardEmozioni({ insieme, scelte, onCambia, disabilitato = false }: Props) {
+  const carte = emozioniDi(insieme)
+
+  /**
+   * Solo le chiavi che esistono ancora contano verso il limite di tre.
+   * Gli elenchi in copy.ts cambieranno: una sessione salvata con parole vecchie
+   * deve tornare scegliibile, non trovarsi la griglia bloccata su niente.
+   */
+  const valide = scelte.filter((k) => carte.some((c) => c.chiave === k))
+
+  function alterna(chiave: string) {
     if (disabilitato) return
     onCambia((precedenti) => {
-      if (precedenti.includes(key)) return precedenti.filter((k) => k !== key)
-      if (precedenti.length >= MAX_EMOZIONI) return precedenti
-      return [...precedenti, key]
+      const vive = precedenti.filter((k) => carte.some((c) => c.chiave === k))
+      if (vive.includes(chiave)) return vive.filter((k) => k !== chiave)
+      if (vive.length >= MAX_EMOZIONI) return vive
+      return [...vive, chiave]
     })
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-      {tutte.map((emozione) => {
-        const scelta = scelte.includes(emozione.key)
-        const piena = !scelta && scelte.length >= MAX_EMOZIONI
+    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+      {carte.map((carta) => {
+        const scelta = valide.includes(carta.chiave)
+        // alla terza le altre si attenuano, senza messaggi di errore
+        const piena = !scelta && valide.length >= MAX_EMOZIONI
         return (
-          <li key={emozione.key}>
+          <li key={carta.chiave}>
             <button
               type="button"
               disabled={disabilitato || piena}
               aria-pressed={scelta}
-              onClick={() => alterna(emozione.key)}
-              className={`flex w-full flex-col items-center gap-1 rounded-2xl border-2 px-3 py-3 transition-colors duration-200 ${
+              onClick={() => alterna(carta.chiave)}
+              className={`flex h-full w-full items-center justify-center rounded-2xl border-2 px-2 py-4 text-center text-lg font-semibold leading-tight transition-colors duration-200 ${
                 scelta
                   ? 'border-notte bg-sole'
-                  : `border-notte/15 bg-sabbia-chiara ${piena ? 'opacity-35' : 'hover:border-notte/50'}`
+                  : `border-notte/20 bg-sabbia ${piena ? 'opacity-35' : 'hover:border-notte/60'}`
               }`}
             >
-              <Segno famiglia={emozione.famiglia} scelta={scelta} />
-              <span className="text-base font-semibold leading-tight">{emozione.label}</span>
+              {carta.etichetta}
             </button>
           </li>
         )

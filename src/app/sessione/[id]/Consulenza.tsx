@@ -103,7 +103,12 @@ export function Consulenza({ bundle }: { bundle: SessionBundle }) {
       async (valore: FortressItem[]) => {
         await salvaFortezza(
           sessionId,
-          valore.map((v) => ({ voce_key: v.voce_key, stato: v.stato, nota: v.nota })),
+          valore.map((v) => ({
+            voce_key: v.voce_key,
+            stato: v.stato,
+            nota: v.nota,
+            desiderata: v.desiderata,
+          })),
         )
       },
       [sessionId],
@@ -172,6 +177,13 @@ export function Consulenza({ bundle }: { bundle: SessionBundle }) {
     setVoci((attuali) => attuali.map((v) => (v.voce_key === voceKey ? { ...v, nota } : v)))
   }
 
+  /** Il cliente sceglie una costruzione per la cittadella che vorrebbe. */
+  function scegliVoce(voceKey: string) {
+    setVoci((attuali) =>
+      attuali.map((v) => (v.voce_key === voceKey ? { ...v, desiderata: !v.desiderata } : v)),
+    )
+  }
+
   async function concludi() {
     await Promise.all(salvataggi.map((s) => s.salvaOra().catch(() => undefined)))
     await concludiSessione(sessionId)
@@ -185,17 +197,9 @@ export function Consulenza({ bundle }: { bundle: SessionBundle }) {
 
   // ------------------------------------------------------------ blocchi avanzamento
 
-  const bloccatoAvanti =
-    (fase === 'nucleo' && membriValidi.length === 0) ||
-    (fase === 'situazione_oggi' && emozioni.sentire_attuale.trim().length === 0) ||
-    (fase === 'desiderato' && emozioni.sentire_desiderato.trim().length === 0)
-
-  const avviso =
-    fase === 'situazione_oggi' && bloccatoAvanti
-      ? copy.situazioneOggi.richiesta_risposta
-      : fase === 'desiderato' && bloccatoAvanti
-        ? copy.desiderato.richiesta_risposta
-        : null
+  // Dalla v1.2 il testo libero e' facoltativo: le carte bastano, e la frase
+  // esatta e' un di piu' prezioso ma non obbligatorio.
+  const bloccatoAvanti = fase === 'nucleo' && membriValidi.length === 0
 
   const testi = copy.fasi[fase] ?? { titolo: '', sottotitolo: '' }
 
@@ -214,10 +218,6 @@ export function Consulenza({ bundle }: { bundle: SessionBundle }) {
         />
       }
     >
-      {avviso ? (
-        <p className="mb-3 shrink-0 text-center text-base text-notte/55">{avviso}</p>
-      ) : null}
-
       <div key={fase} className="anim-entra flex min-h-0 flex-1 flex-col">
         {fase === 'nucleo' ? (
           <FaseNucleo membri={membri} onCambia={setMembri} soloLettura={soloLettura} />
@@ -264,6 +264,7 @@ export function Consulenza({ bundle }: { bundle: SessionBundle }) {
             voci={voci}
             emozioni={emozioni}
             onCambia={setEmozioni}
+            onSceglie={scegliVoce}
             soloLettura={soloLettura}
           />
         ) : null}

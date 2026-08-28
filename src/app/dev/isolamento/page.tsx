@@ -194,7 +194,7 @@ async function eseguiProva(): Promise<Esito[]> {
         'errore',
         async () => {
           await localRepository.saveFortress(chiamanteBeta, sessione.id, [
-            { voce_key: 'tcm', stato: 'presente', nota: 'intruso' },
+            { voce_key: 'tcm', stato: 'presente', nota: 'intruso', desiderata: true },
           ])
           return 'scrittura riuscita'
         },

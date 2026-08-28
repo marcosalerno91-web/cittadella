@@ -15,17 +15,26 @@ const NOTTE = 'var(--notte)'
 const TRATTO = 3.4
 const SOTTILE = 2.2
 
+/**
+ * Il contorno principale non porta uno spessore proprio: lo eredita dal gruppo
+ * che lo contiene. E' cosi' che una costruzione scelta dal cliente puo' avere
+ * il tratto piu' marcato senza dover passare una proprieta' a otto componenti.
+ */
 const contorno = {
   stroke: NOTTE,
-  strokeWidth: TRATTO,
   strokeLinejoin: 'round' as const,
   strokeLinecap: 'round' as const,
 }
 const sottile = { ...contorno, strokeWidth: SOTTILE }
 
-/** I colori delle costruzioni in piedi. Le pareti in ombra sono piu' cupe. */
-const PIETRA = { luce: 'var(--salvia)', ombra: '#4A8570', tetto: 'var(--corallo)' }
-const LEGNO = { luce: '#C08A55', ombra: '#9A6B44' }
+/**
+ * I colori arrivano da variabili CSS: la stessa costruzione si disegna in
+ * salvia quando c'e' gia' e in sole quando il cliente l'ha scelta.
+ * I valori stanno in globals.css.
+ */
+const PIETRA = { luce: 'var(--muro-luce)', ombra: 'var(--muro-ombra)', tetto: 'var(--muro-tetto)' }
+const LEGNO = { luce: 'var(--muro-legno)', ombra: 'var(--muro-legno-ombra)' }
+const ACQUA = { luce: 'var(--muro-acqua)', schiuma: 'var(--muro-acqua-chiara)' }
 
 // ---------------------------------------------------------------- aiutanti
 
@@ -271,8 +280,8 @@ export function Pozzo({ larghezza, altezza }: { larghezza: number; altezza: numb
     <g>
       {/* vera del pozzo */}
       <path d={`M${-r} ${-h} v${h} a${r} ${ry} 0 0 0 ${r * 2} 0 v${-h} z`} fill={LEGNO.ombra} {...contorno} />
-      <ellipse cx={0} cy={-h} rx={r} ry={ry} fill="#5E86A8" {...contorno} />
-      <ellipse cx={0} cy={-h} rx={r * 0.62} ry={ry * 0.62} fill="#3E6A8C" {...sottile} />
+      <ellipse cx={0} cy={-h} rx={r} ry={ry} fill={ACQUA.luce} {...contorno} />
+      <ellipse cx={0} cy={-h} rx={r * 0.62} ry={ry * 0.62} fill={ACQUA.schiuma} {...sottile} />
       {/* montanti e tetto */}
       <path
         d={`M${-r * 0.72} ${-h} v${-altezza * 0.72} M${r * 0.72} ${-h} v${-altezza * 0.72}`}
@@ -324,7 +333,7 @@ export function Granaio({ larghezza, altezza }: { larghezza: number; altezza: nu
       />
       <path
         d={`M0 ${arrotonda(avanti - altezza - 14)} L0 ${arrotonda(dietro - altezza - 14)} L${w / 2 + 8} ${arrotonda(dietro - corpo)} L${w / 2 + 8} ${arrotonda(avanti - corpo)} z`}
-        fill="#C25A45"
+        fill="var(--muro-tetto-ombra)"
         {...sottile}
       />
     </g>
@@ -409,7 +418,7 @@ function Onde({ punto }: { punto: string | undefined }) {
     <path
       d={`M${arrotonda(x - 16)} ${arrotonda(y + LARGHEZZA_FOSSATO * SCHIACCIA * 0.45)} q9 -6 18 0 t18 0`}
       fill="none"
-      stroke="#A8C4D8"
+      stroke={ACQUA.schiuma}
       strokeWidth={3}
       strokeLinecap="round"
     />
@@ -459,7 +468,7 @@ export function Fossato({
 
   return (
     <g>
-      <path d={acqua} fill="#5E86A8" {...contorno} />
+      <path d={acqua} fill={ACQUA.luce} {...contorno} />
       {conPonte ? (
         <>
           <path

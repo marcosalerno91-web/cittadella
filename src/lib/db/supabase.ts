@@ -240,6 +240,7 @@ export const supabaseRepository: Repository = {
         voce_key: v.voce_key,
         stato: null,
         nota: null,
+        desiderata: false,
       })),
     )
     return sessione
@@ -357,6 +358,7 @@ export const supabaseRepository: Repository = {
         voce_key: item.voce_key,
         stato: item.stato,
         nota: item.nota?.trim() || null,
+        desiderata: item.desiderata,
       }))
 
     if (righe.length > 0) {

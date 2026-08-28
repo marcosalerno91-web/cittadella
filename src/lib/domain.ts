@@ -162,8 +162,14 @@ export interface FortressItem {
   session_id: string
   blocco: BloccoKey
   voce_key: string
+  /** cosa la famiglia ha oggi */
   stato: StatoVoce | null
   nota: string | null
+  /**
+   * Cosa la famiglia vuole. Indipendente da `stato`: la cittadella desiderata
+   * e' la somma di cio' che e' presente piu' cio' che e' scelto.
+   */
+  desiderata: boolean
 }
 
 // ---------------------------------------------------------------- emozioni
@@ -174,6 +180,10 @@ export interface Emotions {
   sentire_desiderato: string
   emozioni_scelte: string[]
   emozioni_desiderate: string[]
+  /**
+   * Superata dalla v1.2: la scelta del cliente vive in FortressItem.desiderata.
+   * Il campo resta per non perdere i dati gia' raccolti e non viene piu' scritto.
+   */
   priorita_dichiarate: string[]
 }
 

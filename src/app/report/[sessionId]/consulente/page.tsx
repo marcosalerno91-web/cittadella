@@ -5,6 +5,7 @@ import { Fortezza } from '@/components/scena/Fortezza'
 import { RitrattoDiGruppo } from '@/components/scena/RitrattoDiGruppo'
 import { BLOCCHI_FORTEZZA, faseVita, livelloScorta } from '@/config/engine'
 import { calcolaCrm, euro, percentuale } from '@/lib/engine/crm'
+import { elencaConDirezione, leggiSpostamento } from '@/lib/engine/emozioni'
 import { statoBlocco } from '@/lib/engine/fortezza'
 import { contesto } from '@/lib/sessione-corrente'
 import * as copy from '@/content/copy'
@@ -42,7 +43,11 @@ export default async function DossierConsulente({
     uscite: bundle.finances.uscite,
   })
   const nomi = new Map(bundle.members.map((m) => [m.id, m.nome]))
-  const priorita = new Set(bundle.emotions.priorita_dichiarate)
+  const desiderate = bundle.fortress.filter((f) => f.desiderata && f.stato !== 'presente')
+  const spostamento = leggiSpostamento(
+    bundle.emotions.emozioni_scelte,
+    bundle.emotions.emozioni_desiderate,
+  )
   const data = bundle.session.conclusa_at ?? bundle.session.updated_at
 
   return (
@@ -198,9 +203,9 @@ export default async function DossierConsulente({
                         {testi?.sigla ? (
                           <span className="text-notte/50"> · {testi.sigla}</span>
                         ) : null}
-                        {priorita.has(voceKey) ? (
+                        {riga?.desiderata && s !== 'presente' ? (
                           <span className="ml-2 rounded bg-sole px-1.5 py-0.5 text-xs font-semibold">
-                            priorita’
+                            la vuole
                           </span>
                         ) : null}
                         {riga?.nota ? (
@@ -223,43 +228,76 @@ export default async function DossierConsulente({
       <article className="foglio interruzione">
         <h2 className="mb-4 text-2xl">{copy.report.parole}</h2>
 
-        <section className="insieme mb-6">
+        <section className="insieme mb-5">
           <h3 className="text-lg text-notte/60">{copy.report.parole_oggi}</h3>
-          <blockquote className="mt-2 border-l-4 border-nebbia pl-4 text-lg leading-relaxed">
-            {bundle.emotions.sentire_attuale || copy.report.nessuna_nota}
-          </blockquote>
-          <p className="mt-2 text-base text-notte/60">
-            {bundle.emotions.emozioni_scelte.map(etichettaEmozione).join(' · ') ||
-              copy.report.nessuna_nota}
+          <p className="mt-1 text-lg font-semibold">
+            {spostamento.oggi.length > 0
+              ? elencaConDirezione(spostamento.oggi)
+              : copy.report.nessuna_nota}
           </p>
+          {bundle.emotions.sentire_attuale ? (
+            <blockquote className="mt-2 border-l-4 border-nebbia pl-4 text-lg leading-relaxed">
+              {bundle.emotions.sentire_attuale}
+            </blockquote>
+          ) : null}
         </section>
 
-        <section className="insieme mb-6">
+        <section className="insieme mb-5">
           <h3 className="text-lg text-notte/60">{copy.report.parole_domani}</h3>
-          <blockquote className="mt-2 border-l-4 border-sole pl-4 text-lg leading-relaxed">
-            {bundle.emotions.sentire_desiderato || copy.report.nessuna_nota}
-          </blockquote>
-          <p className="mt-2 text-base text-notte/60">
-            {bundle.emotions.emozioni_desiderate.map(etichettaEmozione).join(' · ') ||
-              copy.report.nessuna_nota}
+          <p className="mt-1 text-lg font-semibold">
+            {spostamento.desiderate.length > 0
+              ? spostamento.desiderate.map((e) => e.etichetta).join(', ')
+              : copy.report.nessuna_nota}
+          </p>
+          {bundle.emotions.sentire_desiderato ? (
+            <blockquote className="mt-2 border-l-4 border-sole pl-4 text-lg leading-relaxed">
+              {bundle.emotions.sentire_desiderato}
+            </blockquote>
+          ) : null}
+        </section>
+
+        {/* la riga da cui partono i prospetti: sta in evidenza, non in fondo */}
+        <section className="insieme mb-6 rounded-2xl border-2 border-notte bg-sole/20 px-6 py-4">
+          <h3 className="text-base font-semibold uppercase tracking-wide text-notte/55">
+            {copy.report.movimento}
+          </h3>
+          <p className="mt-1 text-xl leading-snug">
+            {spostamento.frase || copy.report.movimento_nessuno}
           </p>
         </section>
 
         <section className="insieme mb-6">
-          <h3 className="text-lg text-notte/60">{copy.report.priorita}</h3>
-          {bundle.emotions.priorita_dichiarate.length > 0 ? (
-            <ol className="mt-2 text-lg">
-              {bundle.emotions.priorita_dichiarate.map((key, i) => (
-                <li key={key} className="py-0.5">
-                  {i + 1}. {copy.vociFortezza[key]?.nome ?? key}
-                  {copy.vociFortezza[key]?.sigla ? (
-                    <span className="text-notte/50"> · {copy.vociFortezza[key]?.sigla}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
+          <h3 className="text-lg text-notte/60">{copy.report.desiderata}</h3>
+          <p className="text-sm text-notte/50">{copy.report.desiderata_nota}</p>
+          {desiderate.length > 0 ? (
+            <div className="mt-2">
+              {BLOCCHI_FORTEZZA.map((blocco) => {
+                const delBlocco = desiderate.filter((v) => v.blocco === blocco.key)
+                if (delBlocco.length === 0) return null
+                return (
+                  <div key={blocco.key} className="mb-2">
+                    <p className="text-base font-semibold text-notte/55">
+                      {copy.blocchi[blocco.key].titolo}
+                    </p>
+                    <ul className="text-lg">
+                      {delBlocco.map((v) => (
+                        <li key={v.voce_key} className="py-0.5">
+                          · {copy.vociFortezza[v.voce_key]?.nome ?? v.voce_key}
+                          {copy.vociFortezza[v.voce_key]?.sigla ? (
+                            <span className="text-notte/50">
+                              {' '}
+                              — {copy.vociFortezza[v.voce_key]?.sigla}
+                            </span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })}
+            </div>
           ) : (
-            <p className="mt-2 text-notte/50">{copy.report.nessuna_nota}</p>
+            <p className="mt-2 text-notte/50">{copy.report.desiderata_nessuna}</p>
           )}
         </section>
 
@@ -291,10 +329,6 @@ export default async function DossierConsulente({
       </article>
     </div>
   )
-}
-
-function etichettaEmozione(key: string): string {
-  return copy.emozioni.find((e) => e.key === key)?.label ?? key
 }
 
 function formattaData(iso: string): string {

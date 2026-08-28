@@ -40,6 +40,7 @@ export interface FortressInput {
   voce_key: string
   stato: FortressItem['stato']
   nota: string | null
+  desiderata: boolean
 }
 
 /**

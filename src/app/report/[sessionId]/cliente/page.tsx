@@ -6,7 +6,6 @@ import { RitrattoDiGruppo } from '@/components/scena/RitrattoDiGruppo'
 import { faseVita } from '@/config/engine'
 import { contesto } from '@/lib/sessione-corrente'
 import * as copy from '@/content/copy'
-import type { StatoVoce } from '@/lib/domain'
 import '@/app/report/stampa.css'
 
 export const dynamic = 'force-dynamic'
@@ -64,26 +63,30 @@ export default async function ReportCliente({
       {/* ---------------------------------------------------- pagina 2 */}
       <article className="foglio interruzione">
         <section className="insieme mb-6">
-          <h2 className="mb-2 text-2xl">{copy.report.mappa_scena}</h2>
+          <h2 className="mb-2 text-2xl">{copy.report.mappa_desiderata}</h2>
           <Fortezza membri={bundle.members} voci={bundle.fortress} className="w-full" />
           <ul className="mt-3 flex flex-wrap justify-center gap-6 text-base">
-            {(['presente', 'assente', 'non_so'] as StatoVoce[]).map((s) => (
-              <li key={s} className="flex items-center gap-2">
-                <span
-                  className="inline-block h-4 w-6 rounded border-2"
-                  style={{
-                    background: s === 'presente' ? 'var(--salvia)' : 'transparent',
-                    borderColor: s === 'presente' ? 'var(--salvia)' : s === 'assente' ? 'var(--corallo)' : 'var(--nebbia)',
-                    borderStyle: s === 'assente' ? 'dashed' : 'solid',
-                  }}
-                />
-                {s === 'presente'
-                  ? 'Gia’ al riparo'
-                  : s === 'assente'
-                    ? 'Ancora da costruire'
-                    : 'Da verificare insieme'}
-              </li>
-            ))}
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block h-4 w-6 rounded border-2"
+                style={{ background: 'var(--salvia)', borderColor: 'var(--salvia)' }}
+              />
+              Gia’ al riparo
+            </li>
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block h-4 w-6 rounded border-2"
+                style={{ background: 'var(--sole)', borderColor: 'var(--notte)' }}
+              />
+              Quello che avete scelto
+            </li>
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block h-4 w-6 rounded border-2 border-dashed"
+                style={{ borderColor: 'var(--corallo)' }}
+              />
+              Ancora da costruire
+            </li>
           </ul>
         </section>
 
@@ -107,8 +110,8 @@ export default async function ReportCliente({
   )
 }
 
-function etichettaEmozione(key: string): string {
-  return copy.emozioni.find((e) => e.key === key)?.label ?? key
+function etichettaEmozione(chiave: string): string {
+  return copy.emozioneDi('desiderato', chiave)?.etichetta ?? chiave
 }
 
 function formattaData(iso: string): string {
