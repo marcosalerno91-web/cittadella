@@ -10,10 +10,30 @@ fatto in `README.md`.
 
 ## In una riga
 
-L'applicazione e' completa e collaudata, e' su GitHub e gira in produzione su
-Vercel. **Manca un solo passaggio perche' sia usabile con un cliente vero: le
-migration SQL sul database.** Finche' non vengono eseguite, l'applicazione in
-produzione si rifiuta di partire e lo dice.
+L'applicazione e' completa, collaudata, in produzione su Vercel con il database
+Supabase collegato e le policy RLS verificate. **Resta da percorrere una
+consulenza intera in produzione**: fin qui e' stata provata a fondo solo in
+locale.
+
+## Il repository e' pubblico
+
+Chiunque puo' leggere il codice, lo schema SQL e le policy. Va bene: la
+sicurezza di questa applicazione non sta nel nascondere le regole, sta nel fatto
+che Postgres le applica.
+
+Verificato che nella storia dei commit non ci sia mai finito nulla di segreto:
+nessun `.env` oltre all'esempio con le chiavi vuote, nessuna chiave, nessun
+token, mai la cartella `.data` con i dati delle consulenze di prova.
+
+L'unica cosa da tenere a mente: **l'URL del progetto Supabase e la chiave
+publishable non vanno scritti nei file del repository.** Non sono segreti — chi
+apre l'applicazione li vede nelle richieste del browser — ma in un repository
+pubblico sono un puntatore che non serve a nessuno. Stanno nelle variabili
+d'ambiente di Vercel e in `.env.local`, che e' ignorato.
+
+L'URL era finito in una versione precedente di questo file ed e' rimasto nella
+storia dei commit. Non e' un segreto, quindi non vale la pena riscrivere la
+storia: basta non aggiungerne altri.
 
 ---
 
@@ -21,9 +41,9 @@ produzione si rifiuta di partire e lo dice.
 
 | Cosa | Dove |
 |---|---|
-| Repository | https://github.com/marcosalerno91-web/cittadella (privato) |
+| Repository | https://github.com/marcosalerno91-web/cittadella (**pubblico**) |
 | Produzione | https://cittadella-ruby.vercel.app |
-| Progetto Supabase | `https://fdrlgqyorrwwxdjnpstu.supabase.co` |
+| Progetto Supabase | dashboard Supabase → progetto Cittadella (l'URL non si scrive qui: il repository e' pubblico) |
 | Sviluppo | `cd ~/Progetti/cittadella && npm run dev` → http://localhost:3000 |
 
 ---
@@ -59,9 +79,14 @@ transazione che si annulla da sola e non lascia nulla nel database.
 
 Sono tutti e tre idempotenti: si possono rieseguire senza danni.
 
-**Esito:** eseguite. La prova di isolamento ha segnalato un fallimento che era
-un difetto del test, non delle policy — corretto e ricommittato. Le otto tabelle
-risultano protette con le policy attese.
+**Esito:** eseguite, e verificato via API che tutte e otto le tabelle hanno RLS
+attiva con le policy attese.
+
+La prova di isolamento aveva segnalato un fallimento su quindici. Era un difetto
+**del test**, non delle policy: su `advisors` non c'e' alcuna policy di UPDATE —
+e' voluto — e in quel caso Postgres non solleva un errore, l'update cambia zero
+righe. Il test si aspettava un'eccezione. Corretto contando `row_count`, e ora
+l'errore finale elenca i nomi delle prove fallite invece del solo conteggio.
 
 **Resta da percorrere una consulenza intera in produzione**: registrarsi,
 creare una famiglia, arrivare in fondo, scaricare i due PDF e l'export. Non e'
@@ -97,6 +122,8 @@ stato possibile farlo perche' la conferma via email richiede una casella vera.
 - Salvataggio continuo con copia locale: provato staccando la rete in corsa, la
   risposta data offline arriva al database da sola al rientro
 - Pagine `/dev/*` bloccate nel middleware in produzione
+- **Deploy automatico**: GitHub e Vercel sono collegati, ogni push su `main`
+  pubblica da solo. Per pubblicare a mano resta `vercel --prod`
 
 ### Verificato a mano nel browser
 - Flusso completo con la famiglia demo, dalla registrazione ai due PDF
@@ -126,25 +153,20 @@ stato possibile farlo perche' la conferma via email richiede una casella vera.
    un'agenzia. Va bene finche' gli utenti sono conosciuti uno per uno
 
 ### Comodo, non urgente
-5. **Collegare GitHub a Vercel** per il deploy automatico a ogni push. Il
-   tentativo dalla CLI e' fallito: la GitHub App di Vercel non e' autorizzata
-   sull'account `marcosalerno91-web`. Si fa dal dashboard Vercel → progetto
-   `cittadella` → Settings → Git → Connect Git Repository. Nel frattempo si
-   pubblica con `vercel --prod`
-6. **Il ramo non provato della guardia RLS.** Il caso "database raggiungibile ma
+5. **Il ramo non provato della guardia RLS.** Il caso "database raggiungibile ma
    una sola policy mancante" percorre lo stesso codice del fallimento totale, ma
    non e' mai stato eseguito. Si prova in un minuto:
    `drop policy clients_rw on public.clients;` → l'applicazione deve rifiutarsi
    di partire → poi rieseguire `0001_init.sql`
-7. **Gli elenchi definitivi delle emozioni.** Quelli attuali sono le due griglie
+6. **Gli elenchi definitivi delle emozioni.** Quelli attuali sono le due griglie
    indicate; quando cambieranno, le chiavi delle sessioni gia' salvate non
    corrisponderanno piu' e quelle scelte saranno perse
-8. **Il titolare di agenzia non vede i nuclei dei suoi consulenti.** Voluto in
+7. **Il titolare di agenzia non vede i nuclei dei suoi consulenti.** Voluto in
    v1, ma in un'agenzia vera servira' una condivisione esplicita
-9. **PDF generati dal browser.** Funzionano, ma margini e interruzioni possono
+8. **PDF generati dal browser.** Funzionano, ma margini e interruzioni possono
    cambiare fra Chrome e Safari. Le route sono pronte per una generazione
    server-side: cambia il trasporto, non la pagina
-10. **Nessun test automatico.** Il motore CRM e quello della fortezza sono
+9. **Nessun test automatico.** Il motore CRM e quello della fortezza sono
     funzioni pure e sarebbero i primi candidati
 
 ---
