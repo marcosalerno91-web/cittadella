@@ -17,7 +17,7 @@ declare
   v_cliente uuid;
   v_sessione uuid;
   v_conteggio integer;
-  v_fallite integer := 0;
+  v_falliti text[] := '{}';
 begin
   -- ---------------------------------------------------------------- utenti
   insert into auth.users (id, email, instance_id, aud, role)
@@ -47,8 +47,8 @@ begin
   if v_conteggio = 1 then
     raise notice 'PASSA   Alfa vede il proprio cliente';
   else
+    v_falliti := v_falliti || 'Alfa non vede il proprio cliente';
     raise notice 'FALLISCE Alfa vede % clienti invece di 1', v_conteggio;
-    v_fallite := v_fallite + 1;
   end if;
 
   -- --------------------------------------------------- Beta si registra
@@ -62,54 +62,54 @@ begin
   if v_conteggio = 0 then
     raise notice 'PASSA   Beta non vede nessun cliente di Alfa';
   else
+    v_falliti := v_falliti || 'Beta vede i clienti di Alfa';
     raise notice 'FALLISCE Beta vede % clienti di Alfa', v_conteggio;
-    v_fallite := v_fallite + 1;
   end if;
 
   select count(*) into v_conteggio from public.sessions;
   if v_conteggio = 0 then
     raise notice 'PASSA   Beta non vede nessuna sessione di Alfa';
   else
+    v_falliti := v_falliti || 'Beta vede le sessioni di Alfa';
     raise notice 'FALLISCE Beta vede % sessioni di Alfa', v_conteggio;
-    v_fallite := v_fallite + 1;
   end if;
 
   select count(*) into v_conteggio from public.family_members;
   if v_conteggio <> 0 then
+    v_falliti := v_falliti || 'Beta vede il nucleo di Alfa';
     raise notice 'FALLISCE Beta vede % membri del nucleo di Alfa', v_conteggio;
-    v_fallite := v_fallite + 1;
   end if;
 
   select count(*) into v_conteggio from public.finances;
   if v_conteggio = 0 then
     raise notice 'PASSA   Beta non vede le finanze di Alfa';
   else
+    v_falliti := v_falliti || 'Beta vede le finanze di Alfa';
     raise notice 'FALLISCE Beta vede % righe di finanze di Alfa', v_conteggio;
-    v_fallite := v_fallite + 1;
   end if;
 
   select count(*) into v_conteggio from public.fortress_items;
   if v_conteggio = 0 then
     raise notice 'PASSA   Beta non vede le mura di Alfa';
   else
+    v_falliti := v_falliti || 'Beta vede le mura di Alfa';
     raise notice 'FALLISCE Beta vede % voci delle mura di Alfa', v_conteggio;
-    v_fallite := v_fallite + 1;
   end if;
 
   select count(*) into v_conteggio from public.emotions;
   if v_conteggio = 0 then
     raise notice 'PASSA   Beta non vede le risposte emotive di Alfa';
   else
+    v_falliti := v_falliti || 'Beta vede le emozioni di Alfa';
     raise notice 'FALLISCE Beta vede % righe di emozioni di Alfa', v_conteggio;
-    v_fallite := v_fallite + 1;
   end if;
 
   -- --------------------------------------------------- scritture di Beta
   begin
     insert into public.family_members (session_id, nome, eta)
     values (v_sessione, 'Intruso', 40);
+    v_falliti := v_falliti || 'Beta scrive nel nucleo di Alfa';
     raise notice 'FALLISCE Beta ha scritto un membro nella sessione di Alfa';
-    v_fallite := v_fallite + 1;
   exception when insufficient_privilege or check_violation then
     raise notice 'PASSA   Beta non puo'' scrivere nel nucleo di Alfa';
   end;
@@ -120,8 +120,8 @@ begin
     if v_conteggio = 0 then
       raise notice 'PASSA   Beta non tocca le mura di Alfa (0 righe aggiornate)';
     else
+      v_falliti := v_falliti || 'Beta aggiorna le mura di Alfa';
       raise notice 'FALLISCE Beta ha aggiornato % voci delle mura di Alfa', v_conteggio;
-      v_fallite := v_fallite + 1;
     end if;
   exception when insufficient_privilege then
     raise notice 'PASSA   Beta non puo'' aggiornare le mura di Alfa';
@@ -133,8 +133,8 @@ begin
     if v_conteggio = 0 then
       raise notice 'PASSA   Beta non chiude la sessione di Alfa (0 righe aggiornate)';
     else
+      v_falliti := v_falliti || 'Beta chiude la sessione di Alfa';
       raise notice 'FALLISCE Beta ha chiuso la sessione di Alfa';
-      v_fallite := v_fallite + 1;
     end if;
   exception when insufficient_privilege then
     raise notice 'PASSA   Beta non puo'' chiudere la sessione di Alfa';
@@ -146,20 +146,30 @@ begin
     if v_conteggio = 0 then
       raise notice 'PASSA   Beta non cancella il cliente di Alfa (0 righe)';
     else
+      v_falliti := v_falliti || 'Beta cancella il cliente di Alfa';
       raise notice 'FALLISCE Beta ha cancellato il cliente di Alfa';
-      v_fallite := v_fallite + 1;
     end if;
   exception when insufficient_privilege then
     raise notice 'PASSA   Beta non puo'' cancellare il cliente di Alfa';
   end;
 
   -- --------------------------------------------------- Beta non si sposta di agenzia
+  --
+  -- Su advisors non c'e' alcuna policy di UPDATE, ed e' voluto: la riga advisor
+  -- nasce solo da registra_advisor(). Quando la policy manca del tutto Postgres
+  -- NON solleva un errore: l'update non trova righe aggiornabili e ne cambia
+  -- zero. Va quindi contato row_count, come nelle altre prove di scrittura.
   begin
     update public.advisors set agency_id = (
       select agency_id from public.advisors where id = v_alfa
     ) where id = v_beta;
-    raise notice 'FALLISCE Beta si e'' spostato nell''agenzia di Alfa';
-    v_fallite := v_fallite + 1;
+    get diagnostics v_conteggio = row_count;
+    if v_conteggio = 0 then
+      raise notice 'PASSA   Beta non puo'' cambiarsi agenzia (0 righe aggiornate)';
+    else
+      raise notice 'FALLISCE Beta si e'' spostato nell''agenzia di Alfa';
+      v_falliti := v_falliti || 'Beta si e'' spostato di agenzia';
+    end if;
   exception when insufficient_privilege then
     raise notice 'PASSA   Beta non puo'' cambiarsi agenzia';
   end;
@@ -175,17 +185,19 @@ begin
   if v_conteggio = 1 then
     raise notice 'PASSA   I dati di Alfa sono rimasti intatti';
   else
+    v_falliti := v_falliti || 'I dati di Alfa sono stati alterati';
     raise notice 'FALLISCE I dati di Alfa sono stati alterati';
-    v_fallite := v_fallite + 1;
   end if;
 
   reset role;
 
-  if v_fallite = 0 then
+  if array_length(v_falliti, 1) is null then
     raise notice '----------------------------------------';
     raise notice 'ISOLAMENTO OK: nessuna prova fallita.';
   else
-    raise exception 'ISOLAMENTO NON GARANTITO: % prove fallite', v_fallite;
+    -- l'elenco sta nel messaggio: nel SQL editor i NOTICE si perdono facilmente
+    raise exception 'ISOLAMENTO NON GARANTITO. Prove fallite: %',
+      array_to_string(v_falliti, ' | ');
   end if;
 end $$;
 

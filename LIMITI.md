@@ -61,6 +61,14 @@ Dalla v1.1 il caso pericoloso non e' piu' silenzioso: se le credenziali
 Supabase sono impostate ma le policy non ci sono, **l'applicazione non parte** e
 mostra quale tabella e' scoperta e quale file eseguire (`src/lib/db/guardia-rls.ts`).
 
+**La prova e' stata eseguita su Postgres il 28 agosto 2026** e ha trovato un
+difetto — nel test, non nelle policy. La prova "Beta non si sposta di agenzia"
+si aspettava un'eccezione, ma su `advisors` non c'e' alcuna policy di UPDATE
+(e' voluto) e in quel caso Postgres non solleva: l'update non trova righe
+aggiornabili e ne cambia zero. Corretto contando `row_count` come nelle altre
+prove di scrittura. L'errore finale ora elenca i nomi delle prove fallite,
+perche' nel SQL editor i NOTICE si perdono facilmente.
+
 Resta da verificare su un Postgres vero il ramo piu' sottile della guardia:
 database raggiungibile, funzione presente, **una sola** policy mancante. Il caso
 del fallimento totale e' stato provato; questo percorre lo stesso codice ma non
