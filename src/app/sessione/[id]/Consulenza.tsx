@@ -202,7 +202,7 @@ export function Consulenza({ bundle }: { bundle: SessionBundle }) {
   return (
     <ScenaSessione
       titolo={fase === 'cittadella_completa' ? copy.cittadellaCompleta.titolo : testi.titolo}
-      sottotitolo={testi.sottotitolo || undefined}
+      sottotitolo={fase === 'fortezza' ? undefined : testi.sottotitolo || undefined}
       barra={
         <BarraFase
           fase={fase}

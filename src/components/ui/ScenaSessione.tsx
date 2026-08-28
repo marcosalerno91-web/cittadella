@@ -20,10 +20,10 @@ export function ScenaSessione({
   return (
     <main className="flex h-dvh flex-col overflow-hidden px-6 sm:px-10">
       {barra}
-      <header className="anim-entra shrink-0 pb-4 text-center">
-        <h1 className="text-[clamp(1.7rem,3.4vw,2.6rem)]">{titolo}</h1>
+      <header className="anim-entra shrink-0 pb-3 text-center">
+        <h1 className="text-[clamp(1.5rem,3vw,2.3rem)]">{titolo}</h1>
         {sottotitolo ? (
-          <p className="mx-auto mt-1 max-w-3xl text-lg text-notte/60">{sottotitolo}</p>
+          <p className="mx-auto mt-0.5 max-w-3xl text-base text-notte/60">{sottotitolo}</p>
         ) : null}
       </header>
       <div className="flex min-h-0 flex-1 flex-col pb-5">{children}</div>

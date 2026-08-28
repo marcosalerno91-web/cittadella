@@ -433,6 +433,28 @@ export const vociFortezza: Record<string, { nome: string; sigla?: string; domand
   },
 }
 
+/**
+ * Nomi brevi, per le etichette sulla mappa della cittadella.
+ * I nomi per esteso stanno in vociFortezza e restano quelli che si leggono
+ * nella domanda e nei report.
+ */
+export const vociFortezzaBreve: Record<string, string> = {
+  tcm: 'Chi resta',
+  ltc: 'Autosufficienza',
+  critical_illness: 'Malattie gravi',
+  invalidita_permanente_grave: 'Se non si lavora piu’',
+  rimborso_spese_mediche: 'Spese mediche',
+  grandi_interventi: 'Grandi interventi',
+  ipi_infortunio: 'Infortuni',
+  assistenza: 'Assistenza',
+  pip: 'Pensione',
+  pac: 'Versamento mensile',
+  premi_unici: 'Capitale a frutto',
+  rc_capofamiglia: 'Danni ad altri',
+  casa: 'La casa',
+  tutela_legale: 'Tutela legale',
+}
+
 // ---------------------------------------------------------------- fase 5
 
 export const situazioneOggi = {

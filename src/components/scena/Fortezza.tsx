@@ -1,10 +1,9 @@
 /**
- * Le mura della cittadella.
+ * La cittadella vista in pianta.
  *
- * Quattro cinte concentriche attorno alla famiglia, viste da poco piu' in alto
- * dell'orizzonte. Ogni voce e' un mattone: pieno quando c'e', sagoma
- * tratteggiata quando e' ancora da costruire, in nebbia con un punto
- * interrogativo quando non si sa.
+ * Si guarda da sopra e appena di lato, come una mappa di citta' disegnata a
+ * mano: le cinte circondano invece di coprire, la famiglia al centro resta
+ * sempre visibile, e ogni costruzione occupa uno spazio suo.
  *
  * Nessuno stato interno: la scena serve tale e quale nella fase 4, nelle due
  * domande finali e nei PDF, quindi riceve tutto dall'esterno.
@@ -12,40 +11,37 @@
 
 import { ContenutoAvatar } from '@/components/scena/Avatar'
 import { TERRA, scalaPerEta } from '@/components/scena/RitrattoDiGruppo'
-import { BLOCCHI_FORTEZZA } from '@/config/engine'
+import {
+  Deposito,
+  Fossato,
+  Granaio,
+  Portone,
+  Pozzo,
+  SegmentoMura,
+  Torre,
+  TorreMaestra,
+} from '@/components/scena/costruzioni'
+import {
+  LARGHEZZA_FOSSATO,
+  PIANTA,
+  PIAZZA,
+  SCHIACCIA,
+  arrotonda,
+  profonditaArco,
+  proietta,
+  spezzaArco,
+  suCerchio,
+} from '@/components/scena/pianta'
+import type { Costruzione } from '@/components/scena/pianta'
 import { VIEWBOX } from '@/lib/avatar/tipi'
 import * as copy from '@/content/copy'
 import type { BloccoKey, FamilyMember, FortressItem, StatoVoce } from '@/lib/domain'
 
-/** Centro della cittadella: e' qui che sta la famiglia. */
-const CENTRO = { x: 470, y: 300 } as const
-/** Schiacciamento verticale delle cinte: le vediamo da poco piu' in alto. */
-const SCHIACCIAMENTO = 0.34
+const NOTTE = 'var(--notte)'
 
-interface Cinta {
-  raggio: number
-  altezza: number
-  /** semi-apertura dell'arco su cui si posano i mattoni, in gradi */
-  apertura: number
-}
-
-/** Dal centro verso l'esterno. Il mastio e' il piu' alto e il piu' vicino. */
-const CINTE: Record<BloccoKey, Cinta> = {
-  mastio: { raggio: 212, altezza: 70, apertura: 56 },
-  salute: { raggio: 312, altezza: 58, apertura: 44 },
-  risparmio: { raggio: 402, altezza: 48, apertura: 33 },
-  perimetro: { raggio: 488, altezza: 40, apertura: 29 },
-}
-
-/** Quanto e' grande la famiglia in scena. E' lei il centro: non va rimpicciolita. */
-const SCALA_FAMIGLIA = 0.62
-const PASSO_FAMIGLIA = 60
-
-/**
- * La famiglia sta un po' piu' indietro del centro: cosi' il muro che le passa
- * davanti le arriva ai piedi e non la nasconde.
- */
-const ARRETRAMENTO = 30
+/** Quanto e' grande la famiglia nella piazza. */
+const SCALA_FAMIGLIA = 0.95
+const PASSO_FAMIGLIA = 82
 
 export interface PropsFortezza {
   membri: FamilyMember[]
@@ -53,14 +49,16 @@ export interface PropsFortezza {
   className?: string
   /** disegna tutte le voci come presenti: e' la cittadella completa */
   tuttoPieno?: boolean
-  /** voce in discussione: viene messa in evidenza */
+  /** voce in discussione: si accende, il resto scende di saturazione */
   voceInCorso?: string | null
   /** voci che il cliente ha indicato come prioritarie */
   prioritarie?: string[]
-  /** rende toccabili le sagome ancora da costruire */
+  /** rende toccabili le costruzioni ancora da alzare */
   onTocca?: (voceKey: string) => void
-  /** cinte gia' raggiunte: le successive restano da disegnare */
+  /** blocchi gia' raggiunti: i successivi non si disegnano ancora */
   cinteVisibili?: BloccoKey[]
+  /** mostra il nome di ogni costruzione */
+  conEtichette?: boolean
 }
 
 export function Fortezza({
@@ -72,313 +70,574 @@ export function Fortezza({
   prioritarie = [],
   onTocca,
   cinteVisibili,
+  conEtichette = true,
 }: PropsFortezza) {
-  const cinte = BLOCCHI_FORTEZZA.filter((b) => !cinteVisibili || cinteVisibili.includes(b.key))
+  const presenti = PIANTA.filter((c) => !cinteVisibili || cinteVisibili.includes(c.blocco))
 
   function statoDi(voceKey: string): StatoVoce | null {
     if (tuttoPieno) return 'presente'
     return voci.find((v) => v.voce_key === voceKey)?.stato ?? null
   }
 
-  // Si parte stretti sulla famiglia e sul mastio, e l'inquadratura si allarga
-  // man mano che si costruiscono le cinte: e' il racconto che apre il campo.
-  //
-  // Il campo si misura sui mattoni, non sui cerchi interi: i profili delle cinte
-  // escono dai bordi ed e' giusto cosi', le mura proseguono oltre la scena.
-  const margine = 30
-  let sinistraUtile = CENTRO.x - (larghezzaFamiglia(membri.length) / 2 + 10)
-  let cimaUtile = CENTRO.y - ARRETRAMENTO - ALTEZZA_FAMIGLIA
-  let fondoUtile = CENTRO.y + 10
+  // ------------------------------------------------------- inquadratura
+  // Il campo si allarga da solo man mano che si costruisce: si parte stretti
+  // sulla famiglia e sul mastio e si apre a ogni blocco nuovo.
+  const inquadratura = campo(presenti, membri.length, conEtichette)
 
-  for (const blocco of cinte) {
-    const cinta = CINTE[blocco.key]
-    const meta = larghezzaDaPassi(
-      blocco.voci.map((_, i) =>
-        puntoSuCinta(cinta.raggio, angoloDiPosto(cinta, blocco.voci.length, i)).x,
+  // ------------------------------------------------------- ordine di disegno
+  // Chi e' piu' vicino a chi guarda va disegnato dopo. Gli anelli si spezzano
+  // ai fianchi: la loro meta' dietro sta dietro alla famiglia, quella davanti
+  // le sta davanti. Senza questo il fossato finiva sopra a tutta la scena.
+  const pezzi: { chiave: string; profondita: number; nodo: React.ReactNode }[] = []
+
+  for (const c of presenti) {
+    const stato = statoDi(c.voceKey)
+    const prioritaria = prioritarie.includes(c.voceKey)
+
+    if (c.anello) {
+      for (const tratto of spezzaArco(c.anello.da, c.anello.a)) {
+        pezzi.push({
+          chiave: `${c.voceKey}-${tratto.da}`,
+          profondita: profonditaArco(c.anello.raggio, tratto.da, tratto.a),
+          nodo: (
+            <g key={`${c.voceKey}-${tratto.da}`} className={classeDi(c.voceKey, voceInCorso)}>
+              <TrattoDiAnello
+                costruzione={c}
+                tratto={tratto}
+                stato={stato}
+                prioritaria={prioritaria}
+              />
+            </g>
+          ),
+        })
+      }
+      continue
+    }
+
+    pezzi.push({
+      chiave: c.voceKey,
+      profondita: c.v,
+      nodo: (
+        <g key={c.voceKey} className={classeDi(c.voceKey, voceInCorso)}>
+          <Edificio costruzione={c} stato={stato} prioritaria={prioritaria} />
+        </g>
       ),
-    ) / 2
-    // il mattone piu' a sinistra e' quello all'angolo negativo estremo;
-    // e' anche il piu' in alto, perche' le cinte sono viste di tre quarti
-    const estremo = puntoSuCinta(cinta.raggio, -cinta.apertura)
-    const frontale = puntoSuCinta(cinta.raggio, 0)
-    sinistraUtile = Math.min(sinistraUtile, estremo.x - meta)
-    cimaUtile = Math.min(cimaUtile, estremo.y - cinta.altezza)
-    fondoUtile = Math.max(fondoUtile, frontale.y)
+    })
   }
 
-  const sinistra = arrotonda(sinistraUtile - margine)
-  const larghezza = arrotonda((CENTRO.x - sinistraUtile + margine) * 2)
-  const cima = arrotonda(cimaUtile - margine)
-  const inquadratura = `${sinistra} ${cima} ${larghezza} ${arrotonda(fondoUtile + margine - cima)}`
+  pezzi.push({
+    chiave: 'famiglia',
+    profondita: PIAZZA.v,
+    nodo: <FamigliaInPiazza key="famiglia" membri={membri} />,
+  })
+
+  pezzi.sort((a, b) => a.profondita - b.profondita)
 
   return (
     <svg
       viewBox={inquadratura}
-      className={className}
+      className={`${className} ${voceInCorso ? 'fortezza-attenzione' : ''}`}
       role="img"
-      aria-label="La cittadella e le sue mura"
+      aria-label="La cittadella vista dall’alto"
       fill="none"
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{ transition: 'all 600ms var(--ease-scena)' }}
     >
-      {/* i profili delle cinte, che si chiudono dietro la famiglia */}
-      {[...cinte].reverse().map((blocco) => (
-        <path
-          key={`profilo-${blocco.key}`}
-          d={ellisse(CINTE[blocco.key].raggio)}
-          stroke="var(--notte)"
-          strokeWidth={2.5}
-          opacity={0.14}
-        />
-      ))}
+      {/* la piazza dove sta la famiglia */}
+      <ellipse
+        cx={0}
+        cy={arrotonda(PIAZZA.v * SCHIACCIA)}
+        rx={PIAZZA.raggio}
+        ry={arrotonda(PIAZZA.raggio * SCHIACCIA)}
+        fill="var(--notte)"
+        fillOpacity={0.05}
+        stroke="var(--notte)"
+        strokeOpacity={0.12}
+        strokeWidth={3}
+      />
 
-      {/* la famiglia al centro: le mura che le stanno davanti la coprono ai piedi */}
-      <FamigliaAlCentro membri={membri} />
+      {pezzi.map((p) => p.nodo)}
 
-      {/* i mattoni, dal fondo verso chi guarda */}
-      {cinte.map((blocco) => {
-        const cinta = CINTE[blocco.key]
-        const totale = blocco.voci.length
-        const posti = blocco.voci.map((voceKey, indice) => {
-          const gradi = angoloDiPosto(cinta, totale, indice)
-          return { voceKey, indice, gradi, punto: puntoSuCinta(cinta.raggio, gradi) }
-        })
-        const larghezzaMattone = larghezzaDaPassi(posti.map((p) => p.punto.x))
-
-        // chi e' piu' in basso e' piu' vicino: va disegnato dopo
-        const ordinati = [...posti].sort((a, b) => a.punto.y - b.punto.y)
-
+      {/* i muri incerti portano il loro punto interrogativo qui sopra: un
+          anello e' spezzato in piu' tratti e ne basta uno solo */}
+      {presenti.map((c) => {
+        if (!c.anello || statoDi(c.voceKey) !== 'non_so') return null
+        const p = proietta(c.u, c.v)
         return (
-          <g key={blocco.key}>
-            {ordinati.map(({ voceKey, indice, punto }) => (
-              <Mattone
-                key={voceKey}
-                x={punto.x}
-                y={punto.y}
-                larghezza={larghezzaMattone}
-                altezza={cinta.altezza}
-                stato={statoDi(voceKey)}
-                evidenziato={voceInCorso === voceKey}
-                prioritario={prioritarie.includes(voceKey)}
-                blocco={blocco.key}
-                voceKey={voceKey}
-                ritardo={indice * 110}
-                onTocca={onTocca}
-              />
-            ))}
+          <g key={`incerto-${c.voceKey}`} className={classeDi(c.voceKey, voceInCorso)}>
+            <PuntoInterrogativo x={p.x} y={arrotonda(p.y - c.altezza - 16)} />
           </g>
         )
       })}
+
+      {/* l'alone di attenzione e le etichette stanno sopra a tutto */}
+      {presenti.map((c) =>
+        voceInCorso === c.voceKey ? (
+          <AloneDiAttenzione
+            key={`alone-${c.voceKey}`}
+            costruzione={c}
+            alzata={statoDi(c.voceKey) === 'presente' || statoDi(c.voceKey) === 'non_so'}
+          />
+        ) : null,
+      )}
+
+      {conEtichette
+        ? presenti.map((c) => {
+            const stato = statoDi(c.voceKey)
+            if (stato === null) return null
+            return (
+              <g key={`nome-${c.voceKey}`} className={classeDi(c.voceKey, voceInCorso)}>
+                <Etichetta costruzione={c} stato={stato} acceso={voceInCorso === c.voceKey} />
+              </g>
+            )
+          })
+        : null}
+
+      {/* le zone toccabili, invisibili, sopra a tutto il resto */}
+      {onTocca
+        ? presenti.map((c) => {
+            const stato = statoDi(c.voceKey)
+            if (stato === null || stato === 'presente') return null
+            return (
+              <ZonaToccabile
+                key={`tocco-${c.voceKey}`}
+                costruzione={c}
+                prioritaria={prioritarie.includes(c.voceKey)}
+                onTocca={() => onTocca(c.voceKey)}
+              />
+            )
+          })
+        : null}
     </svg>
   )
 }
 
-/** Altezza della famiglia in scena, per non tagliarle la testa. */
-const ALTEZZA_FAMIGLIA = VIEWBOX.altezza * SCALA_FAMIGLIA
-
-/** Dove si posa il mattone numero `indice` di una cinta da `totale` voci. */
-function angoloDiPosto(cinta: Cinta, totale: number, indice: number): number {
-  if (totale <= 1) return 0
-  return -cinta.apertura + ((cinta.apertura * 2) / (totale - 1)) * indice
+/**
+ * La classe che governa la messa a fuoco.
+ *
+ * La famiglia non porta mai questa classe: e' il motivo per cui esiste tutto
+ * il resto, e non si spegne mai.
+ */
+function classeDi(voceKey: string, voceInCorso: string | null): string {
+  return `elemento${voceInCorso === voceKey ? ' elemento--acceso' : ''}`
 }
 
-/** Ingombro orizzontale della famiglia in scena. */
-function larghezzaFamiglia(quanti: number): number {
-  if (quanti === 0) return VIEWBOX.larghezza * SCALA_FAMIGLIA
-  return (quanti - 1) * PASSO_FAMIGLIA + VIEWBOX.larghezza * SCALA_FAMIGLIA
-}
+// ---------------------------------------------------------------- pezzi
 
-/** Un mattone e' largo quanto lo spazio che ha, mai di piu'. */
-function larghezzaDaPassi(ascisse: number[]): number {
-  if (ascisse.length < 2) return 104
-  const ordinate = [...ascisse].sort((a, b) => a - b)
-  let minimo = Infinity
-  for (let i = 1; i < ordinate.length; i += 1) {
-    minimo = Math.min(minimo, (ordinate[i] ?? 0) - (ordinate[i - 1] ?? 0))
-  }
-  return arrotonda(Math.min(Math.max(minimo * 0.86, 44), 116))
-}
-
-function Mattone({
-  x,
-  y,
-  larghezza,
-  altezza,
+/** Un edificio: torre, pozzo, granaio, deposito, portone. */
+function Edificio({
+  costruzione: c,
   stato,
-  evidenziato,
-  prioritario,
-  blocco,
-  voceKey,
-  ritardo,
+  prioritaria,
+}: {
+  costruzione: Costruzione
+  stato: StatoVoce | null
+  prioritaria: boolean
+}) {
+  const base = proietta(c.u, c.v)
+
+  if (stato === null || stato === 'assente') {
+    return (
+      <g>
+        <Fondazione costruzione={c} prioritaria={prioritaria} tratteggiata={stato === 'assente'} />
+        {prioritaria ? (
+          <Bollo
+            x={base.x}
+            y={arrotonda(base.y - (c.ingombro.profondita * SCHIACCIA) / 2 - 12)}
+          />
+        ) : null}
+      </g>
+    )
+  }
+
+  return (
+    <g className="anim-posa" opacity={stato === 'non_so' ? 0.6 : 1}>
+      <g transform={`translate(${base.x} ${base.y})`}>{corpoDi(c)}</g>
+      {stato === 'non_so' ? (
+        <PuntoInterrogativo x={base.x} y={arrotonda(base.y - c.altezza - 18)} />
+      ) : null}
+      {prioritaria ? <Bollo x={base.x} y={arrotonda(base.y - c.altezza - 26)} /> : null}
+    </g>
+  )
+}
+
+/** Un tratto di anello: muro interno, cinta esterna, fossato. */
+function TrattoDiAnello({
+  costruzione: c,
+  tratto,
+  stato,
+  prioritaria,
+}: {
+  costruzione: Costruzione
+  tratto: { da: number; a: number }
+  stato: StatoVoce | null
+  prioritaria: boolean
+}) {
+  if (!c.anello) return null
+  const base = proietta(c.u, c.v)
+
+  if (stato === null || stato === 'assente') {
+    return (
+      <g>
+        <TracciaAnello
+          costruzione={c}
+          tratto={tratto}
+          prioritaria={prioritaria}
+          tratteggiata={stato === 'assente'}
+        />
+        {prioritaria && tratto.da <= (c.anello.da + c.anello.a) / 2 && tratto.a >= (c.anello.da + c.anello.a) / 2 ? (
+          <Bollo x={base.x} y={arrotonda(base.y - 14)} />
+        ) : null}
+      </g>
+    )
+  }
+
+  const passaIlPonte = tratto.da <= 180 && tratto.a >= 180
+
+  return (
+    <g className="anim-posa" opacity={stato === 'non_so' ? 0.6 : 1}>
+      <g transform={`translate(${base.x} ${base.y})`}>
+        {c.tipo === 'fossato' ? (
+          <Fossato
+            raggio={c.anello.raggio}
+            da={tratto.da}
+            a={tratto.a}
+            centroU={c.u}
+            centroV={c.v}
+            conPonte={passaIlPonte}
+          />
+        ) : (
+          <SegmentoMura
+            raggio={c.anello.raggio}
+            da={tratto.da}
+            a={tratto.a}
+            altezza={c.altezza}
+            centroU={c.u}
+            centroV={c.v}
+          />
+        )}
+      </g>
+    </g>
+  )
+}
+
+function corpoDi(c: Costruzione): React.ReactNode {
+  switch (c.tipo) {
+    case 'torre_maestra':
+      return <TorreMaestra larghezza={c.ingombro.larghezza} altezza={c.altezza} />
+    case 'torre':
+      return <Torre larghezza={c.ingombro.larghezza} altezza={c.altezza} />
+    case 'pozzo':
+      return <Pozzo larghezza={c.ingombro.larghezza} altezza={c.altezza} />
+    case 'granaio':
+      return <Granaio larghezza={c.ingombro.larghezza} altezza={c.altezza} />
+    case 'deposito':
+      return <Deposito larghezza={c.ingombro.larghezza} altezza={c.altezza} />
+    case 'portone':
+      return <Portone larghezza={c.ingombro.larghezza} altezza={c.altezza} />
+    default:
+      return null
+  }
+}
+
+function Bollo({ x, y }: { x: number; y: number }) {
+  return <circle cx={x} cy={y} r={10} fill="var(--sole)" stroke={NOTTE} strokeWidth={3.4} />
+}
+
+/**
+ * La costruzione non ancora affrontata, o quella che non c'e'.
+ *
+ * E' tracciata a terra: si vede lo spazio che occuperebbe. Non e' un allarme,
+ * e' un cantiere.
+ */
+function Fondazione({
+  costruzione: c,
+  prioritaria,
+  tratteggiata,
+}: {
+  costruzione: Costruzione
+  prioritaria: boolean
+  tratteggiata: boolean
+}) {
+  const base = proietta(c.u, c.v)
+  const colore = tratteggiata ? 'var(--corallo)' : NOTTE
+  const comune = {
+    fill: prioritaria ? 'var(--corallo)' : colore,
+    fillOpacity: prioritaria ? 0.22 : 0.04,
+    stroke: colore,
+    strokeWidth: tratteggiata ? 3 : 2.4,
+    strokeOpacity: tratteggiata ? 0.75 : 0.28,
+    strokeDasharray: tratteggiata ? '11 9' : '5 8',
+  }
+
+  const w = c.ingombro.larghezza
+  const d = c.ingombro.profondita * SCHIACCIA
+  return (
+    <rect
+      x={arrotonda(base.x - w / 2)}
+      y={arrotonda(base.y - d / 2)}
+      width={arrotonda(w)}
+      height={arrotonda(d)}
+      rx={8}
+      {...comune}
+    />
+  )
+}
+
+/** La traccia a terra di un tratto di anello ancora da costruire. */
+function TracciaAnello({
+  costruzione: c,
+  tratto,
+  prioritaria,
+  tratteggiata,
+}: {
+  costruzione: Costruzione
+  tratto: { da: number; a: number }
+  prioritaria: boolean
+  tratteggiata: boolean
+}) {
+  if (!c.anello) return null
+  const base = proietta(c.u, c.v)
+  const colore = tratteggiata ? 'var(--corallo)' : NOTTE
+
+  // Una linea sola, non una fascia: quattordici costruzioni tutte da fare
+  // disegnate come bande doppie diventavano una mappa rossa, cioe' un allarme.
+  // Cosi' resta il tracciato di un cantiere.
+  return (
+    <g transform={`translate(${base.x} ${base.y})`}>
+      {prioritaria ? (
+        <path
+          d={traccia(c, c.tipo === 'fossato' ? LARGHEZZA_FOSSATO : 26, tratto)}
+          fill="var(--corallo)"
+          fillOpacity={0.2}
+          stroke="none"
+        />
+      ) : null}
+      <path
+        d={lineaAnello(c, tratto)}
+        fill="none"
+        stroke={colore}
+        strokeWidth={tratteggiata ? 3 : 2.4}
+        strokeOpacity={tratteggiata ? 0.75 : 0.28}
+        strokeDasharray={tratteggiata ? '13 10' : '5 8'}
+      />
+    </g>
+  )
+}
+
+/** La linea di mezzeria di un tratto di anello. */
+function lineaAnello(c: Costruzione, tratto: { da: number; a: number }): string {
+  if (!c.anello) return ''
+  const raggio = c.tipo === 'fossato' ? c.anello.raggio + LARGHEZZA_FOSSATO / 2 : c.anello.raggio
+  const passi = Math.max(10, Math.round(Math.abs(tratto.a - tratto.da) / 4))
+  const punti: string[] = []
+  for (let i = 0; i <= passi; i += 1) {
+    const gradi = tratto.da + ((tratto.a - tratto.da) * i) / passi
+    const p = suCerchio(raggio, gradi)
+    const s = proietta(p.u - c.u, p.v - c.v)
+    punti.push(`${i === 0 ? 'M' : 'L'}${s.x} ${s.y}`)
+  }
+  return punti.join(' ')
+}
+
+/** Il nome della costruzione. Sempre orizzontale, sempre fuori dalle mura. */
+function Etichetta({
+  costruzione: c,
+  stato,
+  acceso,
+}: {
+  costruzione: Costruzione
+  stato: StatoVoce
+  acceso: boolean
+}) {
+  const base = proietta(c.u, c.v)
+  const alzata = stato === 'assente' ? c.etichetta.dy + c.altezza * 0.78 : c.etichetta.dy
+  return (
+    <text
+      x={arrotonda(base.x + c.etichetta.dx)}
+      y={arrotonda(base.y + alzata)}
+      textAnchor={c.etichetta.ancoraggio}
+      fill={NOTTE}
+      fontSize={22}
+      fontWeight={acceso ? 700 : 600}
+      fontFamily="var(--font-sans)"
+      opacity={acceso ? 1 : 0.7}
+      paintOrder="stroke"
+      stroke="var(--sabbia)"
+      strokeWidth={9}
+      strokeLinejoin="round"
+    >
+      {copy.vociFortezzaBreve[c.voceKey] ?? copy.vociFortezza[c.voceKey]?.nome ?? c.voceKey}
+    </text>
+  )
+}
+
+/** Il bersaglio del tocco: invisibile, ma grande abbastanza per due dita. */
+function ZonaToccabile({
+  costruzione: c,
+  prioritaria,
   onTocca,
 }: {
-  x: number
-  y: number
-  larghezza: number
-  altezza: number
-  stato: StatoVoce | null
-  evidenziato: boolean
-  prioritario: boolean
-  blocco: BloccoKey
-  voceKey: string
-  ritardo: number
-  onTocca?: (voceKey: string) => void
+  costruzione: Costruzione
+  prioritaria: boolean
+  onTocca: () => void
 }) {
-  // finche' non c'e' una risposta si vede solo la fondazione: il muro cresce
-  // man mano che la famiglia racconta cosa ha gia'
-  const altezzaEffettiva = arrotonda(stato === null ? altezza * 0.34 : altezza)
-  const sx = arrotonda(x - larghezza / 2)
-  const sy = y - altezzaEffettiva
-  const toccabile = Boolean(onTocca) && stato !== null && stato !== 'presente'
-  const etichetta = copy.vociFortezza[voceKey]?.nome ?? voceKey
+  const base = proietta(c.u, c.v)
+  const nome = copy.vociFortezza[c.voceKey]?.nome ?? c.voceKey
 
-  const forma = { x: sx, y: sy, width: larghezza, height: altezzaEffettiva, rx: 8 }
+  if (c.anello) {
+    return (
+      <path
+        transform={`translate(${base.x} ${base.y})`}
+        d={traccia(c, (c.tipo === 'fossato' ? LARGHEZZA_FOSSATO : 24) + 34, c.anello)}
+        fill="transparent"
+        role="button"
+        tabIndex={0}
+        aria-label={nome}
+        aria-pressed={prioritaria}
+        cursor="pointer"
+        onClick={onTocca}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onTocca()
+          }
+        }}
+      >
+        <title>{nome}</title>
+      </path>
+    )
+  }
 
+  const w = c.ingombro.larghezza + 26
+  const h = c.ingombro.profondita * SCHIACCIA + c.altezza + 26
   return (
-    <g
-      className={stato ? 'anim-posa' : undefined}
-      style={stato ? { animationDelay: `${ritardo}ms` } : undefined}
-      role={toccabile ? 'button' : undefined}
-      tabIndex={toccabile ? 0 : undefined}
-      aria-label={etichetta}
-      aria-pressed={toccabile ? prioritario : undefined}
-      cursor={toccabile ? 'pointer' : undefined}
-      onClick={toccabile && onTocca ? () => onTocca(voceKey) : undefined}
-      onKeyDown={
-        toccabile && onTocca
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onTocca(voceKey)
-              }
-            }
-          : undefined
-      }
+    <rect
+      x={arrotonda(base.x - w / 2)}
+      y={arrotonda(base.y - h + (c.ingombro.profondita * SCHIACCIA) / 2)}
+      width={arrotonda(w)}
+      height={arrotonda(h)}
+      rx={12}
+      fill="transparent"
+      role="button"
+      tabIndex={0}
+      aria-label={nome}
+      aria-pressed={prioritaria}
+      cursor="pointer"
+      onClick={onTocca}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onTocca()
+        }
+      }}
     >
-      {stato === 'presente' ? (
-        <g>
-          <rect {...forma} fill="var(--salvia)" stroke="var(--notte)" strokeWidth={4} />
-          <path
-            d={`M${sx} ${sy + altezzaEffettiva / 3} h${larghezza} M${sx} ${sy + (altezzaEffettiva * 2) / 3} h${larghezza}`}
-            stroke="var(--notte)"
-            strokeWidth={1.6}
-            opacity={0.3}
-          />
-          <Merlatura x={sx} y={sy} larghezza={larghezza} colore="var(--salvia)" />
-        </g>
-      ) : null}
-
-      {stato === 'non_so' ? (
-        <g>
-          <rect {...forma} fill="var(--nebbia)" stroke="var(--notte)" strokeWidth={4} />
-          <text
-            x={x}
-            y={sy + altezzaEffettiva / 2 + 10}
-            textAnchor="middle"
-            fill="var(--notte)"
-            fontSize="28"
-            fontWeight="700"
-            fontFamily="var(--font-sans)"
-            opacity={0.7}
-          >
-            ?
-          </text>
-        </g>
-      ) : null}
-
-      {stato === 'assente' ? (
-        <rect
-          {...forma}
-          fill="var(--corallo)"
-          fillOpacity={prioritario ? 0.28 : 0.07}
-          stroke="var(--corallo)"
-          strokeWidth={4}
-          strokeDasharray="11 9"
-        />
-      ) : null}
-
-      {/* voce non ancora affrontata: appena accennata */}
-      {stato === null ? (
-        <rect
-          {...forma}
-          fill="var(--notte)"
-          fillOpacity={0.04}
-          stroke="var(--notte)"
-          strokeWidth={2.5}
-          strokeOpacity={0.2}
-        />
-      ) : null}
-
-      {prioritario ? (
-        <circle cx={x} cy={sy - 13} r={9} fill="var(--sole)" stroke="var(--notte)" strokeWidth={3} />
-      ) : null}
-
-      {evidenziato ? (
-        <rect
-          x={sx - 9}
-          y={sy - 9}
-          width={larghezza + 18}
-          height={altezzaEffettiva + 18}
-          rx={14}
-          stroke="var(--sole)"
-          strokeWidth={5}
-        />
-      ) : null}
-
-      <title>{`${copy.blocchi[blocco].titolo} — ${etichetta}`}</title>
-    </g>
+      <title>{nome}</title>
+    </rect>
   )
 }
 
-/** Merli in cima al mattone: e' quello che lo fa leggere come muro. */
-function Merlatura({
-  x,
-  y,
-  larghezza,
-  colore,
-}: {
-  x: number
-  y: number
-  larghezza: number
-  colore: string
-}) {
-  const quanti = 3
-  const passo = larghezza / (quanti * 2 - 1)
+/** Traccia a terra di un anello o di un suo tratto. */
+function traccia(c: Costruzione, spessore: number, tratto?: { da: number; a: number }): string {
+  if (!c.anello) return ''
+  const raggio = c.anello.raggio
+  const da = tratto?.da ?? c.anello.da
+  const a = tratto?.a ?? c.anello.a
+  const passi = Math.max(10, Math.round(Math.abs(a - da) / 5))
+  const dentro: string[] = []
+  const fuori: string[] = []
+
+  for (let i = 0; i <= passi; i += 1) {
+    const gradi = da + ((a - da) * i) / passi
+    const pd = suCerchio(raggio - spessore / 2, gradi)
+    const pf = suCerchio(raggio + spessore / 2, gradi)
+    const a1 = proietta(pd.u - c.u, pd.v - c.v)
+    const a2 = proietta(pf.u - c.u, pf.v - c.v)
+    dentro.push(`${a1.x} ${a1.y}`)
+    fuori.push(`${a2.x} ${a2.y}`)
+  }
+
+  return `M${dentro[0]} ${dentro.slice(1).map((p) => `L${p}`).join(' ')} L${fuori[fuori.length - 1]} ${fuori
+    .slice(0, -1)
+    .reverse()
+    .map((p) => `L${p}`)
+    .join(' ')} Z`
+}
+
+/** Il contorno che pulsa attorno alla costruzione di cui si sta parlando. */
+function AloneDiAttenzione({ costruzione: c, alzata }: { costruzione: Costruzione; alzata: boolean }) {
+  const base = proietta(c.u, c.v)
+  const altezza = alzata ? c.altezza : 0
+  if (c.anello) {
+    // Un tratto di evidenziatore lungo il muro: il contorno della fascia
+    // faceva un nastro spesso che copriva il muro stesso.
+    return (
+      <path
+        className="alone"
+        transform={`translate(${base.x} ${base.y})`}
+        d={lineaAnello(c, c.anello)}
+        fill="none"
+        stroke="var(--sole)"
+        strokeWidth={30}
+        strokeLinecap="round"
+        opacity={0.7}
+      />
+    )
+  }
+
+  const w = c.ingombro.larghezza + 30
+  const d = c.ingombro.profondita * SCHIACCIA + 22
+  return (
+    <rect
+      className="alone"
+      x={arrotonda(base.x - w / 2)}
+      y={arrotonda(base.y - d / 2 - altezza - 10)}
+      width={arrotonda(w)}
+      height={arrotonda(d + altezza + 10)}
+      rx={16}
+      fill="none"
+      stroke="var(--sole)"
+      strokeWidth={6}
+    />
+  )
+}
+
+function PuntoInterrogativo({ x, y }: { x: number; y: number }) {
   return (
     <g>
-      {Array.from({ length: quanti }, (_, i) => (
-        <rect
-          key={i}
-          x={x + i * passo * 2}
-          y={y - 11}
-          width={passo}
-          height={13}
-          rx={2}
-          fill={colore}
-          stroke="var(--notte)"
-          strokeWidth={3.4}
-        />
-      ))}
+      <circle cx={x} cy={y} r={17} fill="var(--nebbia)" stroke={NOTTE} strokeWidth={3.4} />
+      <text
+        x={x}
+        y={y + 8}
+        textAnchor="middle"
+        fill={NOTTE}
+        fontSize={24}
+        fontWeight={700}
+        fontFamily="var(--font-sans)"
+      >
+        ?
+      </text>
     </g>
   )
 }
 
-function FamigliaAlCentro({ membri }: { membri: FamilyMember[] }) {
+// ---------------------------------------------------------------- famiglia
+
+function FamigliaInPiazza({ membri }: { membri: FamilyMember[] }) {
   if (membri.length === 0) return null
-  const passo = PASSO_FAMIGLIA
-  const scalaBase = SCALA_FAMIGLIA
-  const larghezza = (membri.length - 1) * passo
-  const partenza = arrotonda(CENTRO.x - larghezza / 2 - (VIEWBOX.larghezza * scalaBase) / 2)
+  const larghezza = (membri.length - 1) * PASSO_FAMIGLIA
+  const base = proietta(PIAZZA.u, PIAZZA.v)
+  const partenza = base.x - larghezza / 2 - (VIEWBOX.larghezza * SCALA_FAMIGLIA) / 2
 
   return (
     <g>
       {membri.map((membro, indice) => {
-        const s = arrotonda(scalaBase * scalaPerEta(membro.eta))
+        const s = arrotonda(SCALA_FAMIGLIA * scalaPerEta(membro.eta))
         return (
           <g
             key={membro.id}
-            transform={`translate(${partenza + indice * passo} ${CENTRO.y - ARRETRAMENTO}) scale(${s}) translate(0 ${-TERRA})`}
+            transform={`translate(${arrotonda(partenza + indice * PASSO_FAMIGLIA)} ${base.y}) scale(${s}) translate(0 ${-TERRA})`}
           >
             <ContenutoAvatar
               nome={membro.nome}
@@ -393,32 +652,59 @@ function FamigliaAlCentro({ membri }: { membri: FamilyMember[] }) {
   )
 }
 
-/**
- * Punto sulla cinta. Gli angoli sono in gradi a partire dal punto piu' vicino a
- * chi guarda, positivi verso destra.
- */
-function puntoSuCinta(raggio: number, gradi: number): { x: number; y: number } {
-  const r = (gradi * Math.PI) / 180
-  return {
-    x: arrotonda(CENTRO.x + Math.sin(r) * raggio),
-    y: arrotonda(CENTRO.y + Math.cos(r) * raggio * SCHIACCIAMENTO),
+// ---------------------------------------------------------------- geometria
+
+/** Il campo inquadrato: contiene le costruzioni presenti e la famiglia. */
+function campo(presenti: Costruzione[], quantiMembri: number, conEtichette: boolean): string {
+  const margine = 30
+  let sx = -(larghezzaFamiglia(quantiMembri) / 2 + 20)
+  let dx = -sx
+  let cima = proietta(PIAZZA.u, PIAZZA.v).y - VIEWBOX.altezza * SCALA_FAMIGLIA
+  let fondo = proietta(PIAZZA.u, PIAZZA.v).y + 20
+
+  for (const c of presenti) {
+    if (c.anello) {
+      const r = c.anello.raggio + (c.tipo === 'fossato' ? LARGHEZZA_FOSSATO : 30)
+      sx = Math.min(sx, -r)
+      dx = Math.max(dx, r)
+      cima = Math.min(cima, -r * SCHIACCIA - c.altezza - 26)
+      fondo = Math.max(fondo, r * SCHIACCIA + 12)
+      continue
+    }
+    const p = proietta(c.u, c.v)
+    const meta = c.ingombro.larghezza / 2 + 16
+    sx = Math.min(sx, p.x - meta)
+    dx = Math.max(dx, p.x + meta)
+    cima = Math.min(cima, p.y - c.altezza - 56)
+    fondo = Math.max(fondo, p.y + (c.ingombro.profondita * SCHIACCIA) / 2 + 34)
   }
+
+  if (conEtichette) {
+    // le etichette non devono uscire dal campo: si stima la loro larghezza
+    // dal numero di caratteri, e' un'approssimazione che basta
+    for (const c of presenti) {
+      const p = proietta(c.u, c.v)
+      const testo = copy.vociFortezzaBreve[c.voceKey] ?? ''
+      const largo = testo.length * 11
+      const x = p.x + c.etichetta.dx
+      const y = p.y + c.etichetta.dy
+      const inizio =
+        c.etichetta.ancoraggio === 'start' ? x : c.etichetta.ancoraggio === 'end' ? x - largo : x - largo / 2
+      sx = Math.min(sx, inizio - 8)
+      dx = Math.max(dx, inizio + largo + 8)
+      cima = Math.min(cima, y - 26)
+      fondo = Math.max(fondo, y + 12)
+    }
+  }
+
+  const x = arrotonda(sx - margine)
+  const y = arrotonda(cima - margine)
+  const w = arrotonda(dx - sx + margine * 2)
+  const h = arrotonda(fondo - cima + margine * 2)
+  return `${x} ${y} ${w} ${h}`
 }
 
-/**
- * Le coordinate si arrotondano prima di finire negli attributi SVG.
- * Senza, server e browser possono scrivere lo stesso numero con un'ultima cifra
- * diversa e React se ne lamenta in fase di idratazione.
- */
-function arrotonda(v: number): number {
-  return Math.round(v * 100) / 100
-}
-
-function ellisse(raggio: number): string {
-  const punti: string[] = []
-  for (let g = 0; g <= 360; g += 6) {
-    const p = puntoSuCinta(raggio, g)
-    punti.push(`${g === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-  }
-  return `${punti.join(' ')} Z`
+function larghezzaFamiglia(quanti: number): number {
+  if (quanti === 0) return VIEWBOX.larghezza * SCALA_FAMIGLIA
+  return (quanti - 1) * PASSO_FAMIGLIA + VIEWBOX.larghezza * SCALA_FAMIGLIA
 }

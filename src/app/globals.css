@@ -64,19 +64,26 @@ h3 {
   line-height: 1.1;
 }
 
-/* Nessun elemento interattivo sotto i 48px: si tocca su tablet, in due. */
-button,
-[role='button'],
-input,
-select,
-textarea {
-  min-height: 48px;
-  font-family: inherit;
-  font-size: inherit;
-}
+/*
+ * Nessun elemento interattivo sotto i 48px: si tocca su tablet, in due.
+ * Dentro @layer base, altrimenti questa regola batte anche le utility di
+ * Tailwind e i pochi comandi che devono restare piccoli (le tacche degli
+ * indicatori) restano alti mezzo pollice.
+ */
+@layer base {
+  button,
+  [role='button'],
+  input,
+  select,
+  textarea {
+    min-height: 48px;
+    font-family: inherit;
+    font-size: inherit;
+  }
 
-button {
-  cursor: pointer;
+  button {
+    cursor: pointer;
+  }
 }
 
 :focus-visible {
@@ -156,4 +163,39 @@ input[type='number']::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* ------------------------------------------------------------------
+   La cittadella in pianta: quando si parla di una costruzione, quella si
+   accende e tutto il resto scende di saturazione. L'occhio del cliente sa
+   sempre di cosa si sta parlando senza che nessuno glielo dica.
+   ------------------------------------------------------------------ */
+
+.fortezza-attenzione .elemento {
+  filter: saturate(0.2);
+  opacity: 0.45;
+  transition:
+    opacity 420ms var(--ease-scena),
+    filter 420ms var(--ease-scena);
+}
+
+.fortezza-attenzione .elemento--acceso {
+  filter: none;
+  opacity: 1;
+}
+
+@keyframes cittadella-alone {
+  0%,
+  100% {
+    stroke-opacity: 0.5;
+    stroke-width: 5;
+  }
+  50% {
+    stroke-opacity: 1;
+    stroke-width: 9;
+  }
+}
+
+.alone {
+  animation: cittadella-alone 2.1s ease-in-out infinite;
 }
