@@ -55,19 +55,23 @@ chiusura e' una schermata a se'. La macchina a stati ne ha otto:
 desiderato, chiusura`. Cosi' l'indicatore di avanzamento dice la verita' e la
 ripresa di una sessione interrotta torna esattamente dov'era.
 
-## D5 — L'inquadratura della fortezza si allarga da sola
+## D5 — L'inquadratura della cittadella si allarga da sola
 
-Con quattro cinte concentriche in un riquadro fisso, all'inizio si vedeva un
-puntino in mezzo al vuoto. La scena calcola il campo sui mattoni effettivamente
-presenti: si parte stretti sulla famiglia e sul mastio e il campo si apre a ogni
-cinta nuova. I profili delle cinte escono dai bordi ed e' voluto: le mura
-proseguono oltre la scena.
+Con quattro cinte in un riquadro fisso, all'inizio si vedeva un puntino in
+mezzo al vuoto. La scena calcola il campo sulle costruzioni effettivamente
+presenti: si parte stretti sulla famiglia e sul mastio e il campo si apre a
+ogni blocco nuovo. I profili delle cinte escono dai bordi ed e' voluto: le
+mura proseguono oltre la scena.
 
-## D6 — Le voci senza risposta sono fondazioni, non mattoni vuoti
+*Rivista nella v1.1 con il nuovo punto di vista (vedi C1), ma la regola e'
+rimasta la stessa.*
 
-Una voce non ancora affrontata si disegna alta un terzo, come una fondazione. Il
-muro **cresce** mentre la famiglia racconta cosa ha gia'. Era il modo piu'
-diretto per far leggere il progresso senza mostrare un punteggio.
+## D6 — Le voci senza risposta sono tracciate a terra
+
+Una costruzione non ancora affrontata si disegna come una traccia sul terreno,
+la pianta di quello che occuperebbe. La citta' **cresce** mentre la famiglia
+racconta cosa ha gia'. Era il modo piu' diretto per far leggere il progresso
+senza mostrare un punteggio.
 
 ## D7 — Due coetanei stanno sullo stesso punto della curva
 
@@ -82,11 +86,16 @@ Sotto i 6 anni la figura diventa `bambino`, sotto i 19 `studente`, dai 66
 `tempo_libero`. Il suggerimento scatta **solo** se la professione attuale era a
 sua volta un suggerimento: se il consulente ha scelto a mano, non si tocca piu'.
 
-## D9 — L'aspetto segue il nome finche' non lo si tocca
+## D9 — L'aspetto viene dal nome, e quasi niente si puo' toccare
 
-Digitando "Marta" l'avatar cambia incarnato, capelli e taglio in modo
-deterministico dal nome. E' il momento "wow" della fase 1 e costa zero clic.
-Appena il consulente usa il selettore di aspetto, il legame si rompe.
+Digitando "Marta" l'avatar prende incarnato, colore dei capelli e figura in
+modo deterministico dal nome. E' il momento "wow" della fase 1 e costa zero
+clic.
+
+*Ridotta nella v1.1 (vedi B2):* incarnato e colore dei capelli **non hanno
+alcun controllo** in interfaccia e seguono sempre il nome. La figura e' un
+tentativo che si corregge con un tocco, e da quel momento smette di seguire il
+nome.
 
 ## D10 — Salvataggio continuo con copia locale
 
@@ -158,3 +167,134 @@ parte. Nessuna icona di pericolo in tutta l'applicazione.
 Diventa di sola lettura e ogni server action rifiuta le scritture controllando
 lo stato prima di procedere. "Riapri la sessione" e' visibile ma separato dai
 tre pulsanti del materiale, per non premerlo per sbaglio.
+
+
+---
+
+# v1.1 — decisioni prese durante le tre modifiche
+
+## A1 — La guardia si legge da una funzione, non da pg_policies
+
+PostgREST espone solo lo schema `public`: `pg_catalog` non e' raggiungibile,
+quindi l'applicazione non puo' interrogare `pg_policies` direttamente. La
+verifica passa da `public.stato_protezione()`, SECURITY DEFINER, che restituisce
+per ogni tabella del modello se la RLS e' attiva e quali policy ci sono. Non
+rivela dati: solo nomi.
+
+Il vantaggio secondario e' che se la migration non e' mai stata eseguita, la
+funzione non esiste e la chiamata fallisce: la guardia se ne accorge lo stesso e
+lo dice con parole diverse ("lo schema non e' stato creato" invece di "manca la
+policy X").
+
+## A2 — La guardia sta nel layout, non nel repository
+
+Metterla dentro `repository()` avrebbe fatto scattare un'eccezione a meta'
+pagina, con un messaggio generico. Sta invece fra il layout e tutto il resto:
+se l'isolamento non regge, al posto dell'applicazione compare la spiegazione di
+cosa manca e di quale file eseguire. E' letteralmente "l'applicazione non parte".
+
+Gira una volta per processo. In sviluppo Next.js puo' caricare il modulo in piu'
+grafi e la verifica puo' ripetersi una volta per grafo: resta lontanissima
+dall'essere per query, che era il punto.
+
+## A3 — Provata solo la strada del fallimento totale
+
+Con credenziali Supabase irraggiungibili l'applicazione si ferma e elenca tutte
+e otto le tabelle: verificato. Il caso piu' sottile — database raggiungibile ma
+una sola policy mancante — percorre lo stesso codice ma non e' stato eseguito su
+un Postgres vero. E' in `LIMITI.md`.
+
+## B1 — Due figure, non un cursore di genere
+
+`femminile` e `maschile`, due silhouette per fascia d'eta'. La differenza sta
+nel rapporto spalle-fianchi e in una vita appena segnata, ed e' quasi nulla da
+bambini, come nella realta'.
+
+I fianchi non superano mai le spalle di piu' di un'unita': oltre, le braccia
+finivano dentro la sagoma invece di cadere lungo i fianchi. Se ne accorge solo
+guardando, e infatti se n'e' accorto guardando.
+
+## B2 — Quattro tonalita', nessun controllo
+
+Incarnato e colore dei capelli vengono dal nome su quattro tonalita' naturali
+ciascuno e **non hanno alcun controllo in interfaccia**. Toglierli e' stato il
+punto: erano tre selettori da sei varianti che nessuno usava in sala e che
+rubavano attenzione al racconto.
+
+Unica eccezione all'origine dal nome: sopra l'eta' del tempo libero i capelli
+diventano grigi. E' l'eta' a deciderlo, non il nome, perche' un settantenne
+biondo cenere disegnato cosi' sembra un errore.
+
+## B3 — La figura si deduce dal nome, e sbaglia
+
+I nomi italiani in -a sono femminili tranne una lista corta e ricorrente
+(Andrea, Luca, Nicola, Mattia…), quelli in -o e -i maschili, quelli in -e
+maschili in maggioranza. Piu' una lista di femminili che non finiscono in -a.
+
+Sbagliera'. Per questo il controllo sta sempre in vista accanto al nome e si
+corregge con un tocco: e' un tentativo, non una regola.
+
+## B4 — Le sessioni vecchie non si perdono
+
+Le sessioni aperte prima della v1.1 hanno `avatar_seed` in una forma diversa
+(`capelli` e `taglio` numerici, nessuna `figura`). `seedNormalizzato()`
+ricostruisce quello che manca partendo dal nome, in entrambi i driver. Nessuna
+migrazione di dati, nessuna sessione persa.
+
+## C1 — Pianta assonometrica, non vista frontale
+
+Quattro cinte concentriche disegnate come quattro muri sempre piu' grandi, uno
+davanti all'altro, erano illeggibili: ogni cinta nuova nascondeva la
+precedente. Il punto di vista e' passato a una pianta vista da sopra e appena di
+lato, con il piano di terra schiacciato di un fattore 0.5.
+
+Quel fattore e' una scelta di leggibilita', non di realismo: piu' e' alto piu'
+la vista e' dall'alto e piu' la mappa diventa alta e stretta; a 0.5 ha
+all'incirca le proporzioni della fascia in cui vive nella fase 4, e i nomi delle
+costruzioni restano leggibili da 80 cm.
+
+## C2 — Ogni pezzo di anello ha la sua profondita'
+
+Un anello intero non puo' avere una sola profondita': la sua meta' dietro sta
+dietro alla famiglia e quella davanti le sta davanti. Con una profondita' sola,
+il fossato finiva disegnato sopra a tutta la scena, famiglia compresa.
+
+Ogni arco si spezza ai fianchi della circonferenza (90 e 270 gradi) e ogni
+tratto entra nell'ordinamento con la propria profondita'.
+
+## C3 — La famiglia non si spegne mai
+
+Quando si parla di una costruzione, tutto il resto della scena scende di
+saturazione. Tutto il resto **delle costruzioni**: la famiglia resta a colori
+pieni. Spegnere le persone per mettere in evidenza un muro sarebbe stato il
+contrario di quello che fa questo prodotto.
+
+## C4 — Gli indicatori misurano la conversazione, non la protezione
+
+I quattro indicatori in alto si riempiono man mano che si **risponde**, non man
+mano che si e' protetti. Un indicatore che misurasse le coperture presenti
+sarebbe un punteggio mostrato al cliente, e i punteggi non si mostrano.
+
+Ogni tacca e' anche il modo per tornare su una voce gia' data: un solo elemento
+che fa avanzamento e navigazione, invece di due file di comandi.
+
+## C5 — Le tracce sono linee, non fasce
+
+Quattordici costruzioni tutte da fare, disegnate come bande a doppio contorno
+corallo, producevano una mappa rossa: un allarme, cioe' esattamente quello che
+il prodotto non deve fare. Le tracce degli anelli sono diventate una linea di
+mezzeria tratteggiata. Resta il cantiere, sparisce l'allarme.
+
+## C6 — Nomi brevi sulla mappa
+
+"Una polizza che protegge chi resta" non sta accanto a una torre. Sulla mappa
+compaiono nomi brevi (`vociFortezzaBreve` in `copy.ts`): *Chi resta*,
+*Autosufficienza*, *Spese mediche*. I nomi per esteso restano quelli della
+domanda e dei report.
+
+## C7 — La regola globale sui bottoni e' finita in @layer base
+
+`button { min-height: 48px }` scritta fuori da un layer batte anche le utility
+di Tailwind: le tacche degli indicatori, alte 10 px per progetto, venivano
+disegnate alte mezzo pollice. Spostata dentro `@layer base`, dove le utility
+possono scavalcarla quando serve.

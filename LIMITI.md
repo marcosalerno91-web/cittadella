@@ -47,23 +47,33 @@ chiedeva questo come comportamento predefinito, ma in un'agenzia vera servira'
 una condivisione esplicita: un flag sul cliente, o un ruolo che allarga la
 visibilita' a tutta l'agenzia.
 
-## 4. Le policy RLS non sono ancora state eseguite
+## 4. Le policy RLS: ora c'e' una guardia, ma va comunque eseguita la migration
 
 `supabase/migrations/0001_init.sql` e `supabase/tests/isolamento.sql` sono
-scritti ma **non sono mai girati su un Postgres**: su questa macchina non ci
-sono Docker, CLI Supabase o psql, e non c'e' un progetto Supabase a cui
-collegarsi.
+scritti. Se sono gia' stati eseguiti sul progetto Supabase, questo punto e'
+chiuso; altrimenti resta aperto.
 
-L'isolamento e' invece stato eseguito e verificato sul driver locale, che
-applica le stesse condizioni: dieci prove su dieci, visibili su `/dev/isolamento`.
+Dalla v1.1 il caso pericoloso non e' piu' silenzioso: se le credenziali
+Supabase sono impostate ma le policy non ci sono, **l'applicazione non parte** e
+mostra quale tabella e' scoperta e quale file eseguire (`src/lib/db/guardia-rls.ts`).
 
-**Prima di andare in produzione**: eseguire `0001_init.sql`, poi
-`isolamento.sql`, e leggere i NOTICE. Devono essere tutti `PASSA`.
+Resta da verificare su un Postgres vero il ramo piu' sottile della guardia:
+database raggiungibile, funzione presente, **una sola** policy mancante. Il caso
+del fallimento totale e' stato provato; questo percorre lo stesso codice ma non
+e' mai stato eseguito. Si prova in un minuto:
+
+```sql
+drop policy clients_rw on public.clients;   -- l'applicazione deve rifiutarsi di partire
+-- poi rieseguire 0001_init.sql per rimetterla
+```
+
+L'isolamento e' comunque stato eseguito e verificato sul driver locale, che
+applica le stesse condizioni: dieci prove su dieci, su `/dev/isolamento`.
 
 ## 5. Deploy su Vercel non effettuato
 
 Non ho credenziali Vercel ne' un repository GitHub remoto. Il progetto e' un
-repository git locale con tre commit, la build di produzione passa
+repository git locale, la build di produzione passa
 (`npm run build`) e non c'e' nulla di specifico della macchina.
 
 Per completare: creare il repository `cittadella` su GitHub, collegarlo a
@@ -96,6 +106,41 @@ vulnerabilita' di build, non di runtime dell'applicazione servita.
 
 Gli avatar sorridono e basta. L'API e' gia' predisposta (`Espressione` in
 `src/lib/avatar/tipi.ts`), ma il set alternativo non c'e'.
+
+### La figura dedotta dal nome sbaglia sui nomi stranieri
+
+L'euristica conosce le desinenze italiane e due liste corte di eccezioni. Su
+"Kevin", "Deborah" o "Andrea" scritto da un tedesco indovina per caso. Si
+corregge con un tocco e il controllo sta sempre in vista, ma su una clientela
+non italiana andra' rifatta — o tolta, lasciando una figura predefinita.
+
+### Le etichette della mappa sono posizionate a mano
+
+Ogni costruzione ha un suo scostamento fisso per il nome, scelto guardando le
+dodici scene di `/dev/fortezza`. Non c'e' nessun algoritmo che eviti le
+sovrapposizioni: cambiando un raggio o aggiungendo una voce alle mura, le
+etichette vanno ricontrollate a occhio. Con quattordici voci e' sostenibile;
+a venti non lo sarebbe piu'.
+
+### La larghezza delle etichette e' stimata dai caratteri
+
+Per non farle uscire dall'inquadratura, il campo tiene conto della larghezza
+del testo stimata a 11 unita' per carattere. E' un'approssimazione: con un nome
+molto largo o molto stretto il margine sara' sbagliato di poco.
+
+### Il granaio della fase 3 e quello della cittadella sono due disegni
+
+Hanno lo stesso corpo di legno, lo stesso tetto corallo e la stessa porta ad
+arco, e il cliente li riconosce come lo stesso edificio — ma sono due
+componenti separati, uno di fronte e uno in assonometria. Cambiando l'aspetto
+del granaio vanno toccati entrambi.
+
+### Le costruzioni sono lo stesso disegno per tutte le fasce d'eta'
+
+Le torri, i muri e gli edifici non cambiano con niente: sono fissi nella
+pianta. E' voluto — la cittadella e' una sola — ma significa che non c'e' modo
+di dare a un nucleo una citta' diversa da un altro se non attraverso le
+risposte.
 
 ### Nessun test automatico
 

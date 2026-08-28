@@ -54,6 +54,11 @@ RLS). Quando non lo sono, usa il driver su file. La scelta avviene in
    si puo' rieseguire.
 3. Esegui `supabase/tests/isolamento.sql` e leggi i NOTICE: devono essere tutti
    `PASSA`. Gira dentro una transazione che si annulla da sola.
+
+   Se salti il passo 2, l'applicazione **non parte**: al suo posto compare la
+   pagina che dice quale tabella e' scoperta. Le query non filtrano per agenzia
+   di proposito — a tenere separati i consulenti sono le policy — quindi girare
+   senza e' l'unico modo per fare danni davvero.
 4. In Authentication → Providers, tieni attivo solo Email.
 5. Metti `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` in
    `.env.local` (e fra le variabili del progetto su Vercel).
@@ -72,11 +77,15 @@ src/
       consulente/              dossier completo, quattro fogli A4
       cliente/                 due pagine per la famiglia, senza cifre
     api/sessione/[id]/export/  export JSON versionato
-    dev/avatar/                controllo visivo delle 22 figure
+    dev/avatar/                le sei combinazioni e le 22 figure
+    dev/fortezza/              la cittadella in ogni stato possibile
     dev/isolamento/            prova di isolamento fra agenzie
   components/
     fasi/                      una fase, un componente
-    scena/                     Avatar, RitrattoDiGruppo, Fortezza, Granaio
+    scena/                     Avatar, RitrattoDiGruppo, Granaio
+      pianta.ts                la planimetria della cittadella
+      costruzioni.tsx          torri, muri, pozzo, granaio, portone, fossato
+      Fortezza.tsx             la scena che li assembla
     ui/                        i componenti di base, scritti a mano
   config/engine.ts             TUTTI i parametri del motore
   content/copy.ts              TUTTI i testi che finiscono a schermo
@@ -126,8 +135,12 @@ mano. Non e' un fixture automatico: e' il copione da seguire nel browser.
 `/dev/avatar` mostra tutte le figure insieme (`?grande=1` le ingrandisce,
 `?solo=medico,operaio` ne isola alcune).
 
-`/dev/isolamento` crea due agenzie e prova a farle sconfinare. Entrambe le
-pagine sono disponibili solo fuori produzione.
+`/dev/fortezza` genera la cittadella in dodici stati diversi — vuota, un blocco
+alla volta, tutta piena, tutta "non lo so", con le priorita' toccate. Si
+guardano tutti prima di toccare la geometria.
+
+`/dev/isolamento` crea due agenzie e prova a farle sconfinare. Tutte e tre le
+pagine esistono solo fuori produzione.
 
 ## Vincoli del prodotto
 
