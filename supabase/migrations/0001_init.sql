@@ -299,5 +299,45 @@ $$;
 revoke all on function public.registra_advisor(text, text) from public;
 grant execute on function public.registra_advisor(text, text) to authenticated;
 
+-- ---------------------------------------------------------------- guardia
+
+-- Espone lo stato di protezione delle tabelle del modello.
+--
+-- Serve alla guardia che gira all'avvio dell'applicazione: se qualcuno collega
+-- le credenziali Supabase senza aver eseguito questa migration, l'applicazione
+-- deve fermarsi invece di girare senza isolamento fra agenzie.
+--
+-- pg_catalog non e' esposto da PostgREST, quindi la lettura passa da qui.
+-- Non rivela dati: solo nomi di tabelle e di policy.
+create or replace function public.stato_protezione()
+returns table (tabella text, rls_attiva boolean, policy_presenti text[])
+language sql
+stable
+security definer
+set search_path = public, pg_catalog, pg_temp
+as $$
+  select
+    c.relname::text,
+    c.relrowsecurity,
+    coalesce(
+      array_agg(p.polname::text order by p.polname) filter (where p.polname is not null),
+      '{}'::text[]
+    )
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  left join pg_policy p on p.polrelid = c.oid
+  where n.nspname = 'public'
+    and c.relkind = 'r'
+    and c.relname in (
+      'agencies', 'advisors', 'clients', 'sessions',
+      'family_members', 'finances', 'fortress_items', 'emotions'
+    )
+  group by c.relname, c.relrowsecurity
+$$;
+
+revoke all on function public.stato_protezione() from public;
+-- anche ad anon: la guardia deve poter parlare prima che qualcuno acceda
+grant execute on function public.stato_protezione() to anon, authenticated;
+
 -- l'accesso anonimo non tocca nulla
 revoke all on all tables in schema public from anon;

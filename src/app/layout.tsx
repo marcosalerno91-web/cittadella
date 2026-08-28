@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Fraunces, Inter } from 'next/font/google'
 
+import { Guardia } from '@/components/scena/Guardia'
 import * as copy from '@/content/copy'
 import './globals.css'
 
@@ -33,7 +34,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it" className={`${fraunces.variable} ${inter.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Guardia>{children}</Guardia>
+      </body>
     </html>
   )
 }
