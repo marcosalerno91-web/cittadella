@@ -9,6 +9,16 @@ import { NextResponse, type NextRequest } from 'next/server'
  * locale non serve e viene saltato.
  */
 export async function middleware(richiesta: NextRequest) {
+  // Le pagine di servizio non esistono in produzione.
+  //
+  // Ogni pagina /dev chiama gia' notFound(), ma quel controllo sta dentro il
+  // rendering: se una guardia del layout interviene prima, la pagina non ci
+  // arriva mai e la rotta risponde 200 con la pagina della guardia. Qui invece
+  // il blocco e' prima di tutto e non dipende dall'ordine.
+  if (process.env.NODE_ENV === 'production' && richiesta.nextUrl.pathname.startsWith('/dev')) {
+    return new NextResponse(null, { status: 404 })
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const chiave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !chiave) return NextResponse.next()
