@@ -28,7 +28,23 @@ produzione si rifiuta di partire e lo dice.
 
 ---
 
-## IL PROSSIMO PASSO — le migration
+## IL PROSSIMO PASSO — una scelta sulla conferma email
+
+**Le migration sono state eseguite** (28 agosto 2026) e le otto tabelle sono
+protette. La produzione supera le due guardie e mostra la schermata di accesso.
+
+Resta una scelta da fare sul progetto Supabase: **Authentication → Providers →
+Email → "Confirm email"** e' attivo.
+
+- **Se lo lasci attivo**: chi si registra riceve una email, la conferma, poi
+  torna e accede. Funziona (l'applicazione crea la riga advisor al primo
+  accesso riuscito), ma serve una casella vera e per ora la registrazione
+  end-to-end non e' mai stata completata fino in fondo.
+- **Se lo spegni**: la registrazione entra dritta, come in sviluppo. Ha senso
+  finche' gli intermediari sono conosciuti uno per uno. Da riaccendere prima di
+  aprire a terzi, insieme alla registrazione a invito (punto 4).
+
+## Le migration — fatto
 
 **Chi lo fa: Marco.** Serve accesso al dashboard Supabase, che l'assistente non ha.
 
@@ -43,12 +59,13 @@ transazione che si annulla da sola e non lascia nulla nel database.
 
 Sono tutti e tre idempotenti: si possono rieseguire senza danni.
 
-**Come si capisce che ha funzionato:** apri https://cittadella-ruby.vercel.app —
-se compare la schermata di accesso, e' fatto. Se compare ancora "Le mura del
-database non sono in piedi", la pagina dice quale tabella e' rimasta scoperta.
+**Esito:** eseguite. La prova di isolamento ha segnalato un fallimento che era
+un difetto del test, non delle policy — corretto e ricommittato. Le otto tabelle
+risultano protette con le policy attese.
 
-Dopo, resta da percorrere una consulenza intera in produzione: registrarsi,
-creare una famiglia, arrivare in fondo, scaricare i due PDF e l'export.
+**Resta da percorrere una consulenza intera in produzione**: registrarsi,
+creare una famiglia, arrivare in fondo, scaricare i due PDF e l'export. Non e'
+stato possibile farlo perche' la conferma via email richiede una casella vera.
 
 ---
 
@@ -96,8 +113,8 @@ creare una famiglia, arrivare in fondo, scaricare i due PDF e l'export.
 ## Da fare
 
 ### Bloccante prima di usarlo con un cliente
-1. **Le migration** (sopra)
-2. **Percorrere una consulenza intera in produzione**
+1. **Decidere sulla conferma email** (sopra)
+2. **Percorrere una consulenza intera in produzione** — mai fatto end-to-end
 
 ### Bloccante prima di aprirlo ad altri intermediari
 3. **Privacy policy e consenso dentro l'applicazione.** Oggi c'e' solo una

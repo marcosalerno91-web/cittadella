@@ -53,22 +53,47 @@ export const supabaseAuth: AuthAdapter = {
 
   async signIn(email, password) {
     const sb = await clientSupabase()
-    const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password })
+    const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password })
     if (error) throw new NonAutorizzato(error.message)
-    const advisor = await supabaseAuth.currentAdvisor()
+
+    let advisor = await supabaseAuth.currentAdvisor()
+
+    // Con la conferma via email attiva, alla registrazione non c'e' ancora una
+    // sessione: registra_advisor() non e' mai stata chiamata e la riga advisor
+    // non esiste. Senza questo, dopo aver confermato l'email si resterebbe
+    // fuori per sempre. La funzione e' idempotente: chiamarla qui non fa danni.
+    if (!advisor) {
+      const meta = data.user?.user_metadata ?? {}
+      await sb.rpc('registra_advisor', {
+        p_nome: typeof meta.nome === 'string' ? meta.nome : '',
+        p_agenzia: typeof meta.agenzia === 'string' ? meta.agenzia : '',
+      })
+      advisor = await supabaseAuth.currentAdvisor()
+    }
+
     if (!advisor) throw new NonAutorizzato('Accesso senza profilo consulente')
     return advisor
   },
 
   async signUp({ email, password, nome, agenzia }) {
     const sb = await clientSupabase()
-    const { error } = await sb.auth.signUp({ email: email.trim(), password })
+    // nome e agenzia viaggiano nei metadati: se il progetto richiede la
+    // conferma via email, li ritroviamo al primo accesso riuscito
+    const { error } = await sb.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { nome: nome.trim(), agenzia: agenzia.trim() } },
+    })
     if (error) throw new NonAutorizzato(error.message)
 
     // Se il progetto richiede la conferma via email non c'e' ancora una sessione:
     // l'advisor verra' creato al primo accesso riuscito.
     const { data: utente } = await sb.auth.getUser()
-    if (!utente.user) throw new NonAutorizzato('Conferma l’email e poi accedi')
+    if (!utente.user) {
+      throw new NonAutorizzato(
+        'Ti abbiamo mandato una email di conferma. Aprila, poi torna qui e accedi.',
+      )
+    }
 
     const { error: erroreRpc } = await sb.rpc('registra_advisor', {
       p_nome: nome,
