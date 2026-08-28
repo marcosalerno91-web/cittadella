@@ -1,39 +1,48 @@
 import { AVATAR } from '@/config/engine'
-import { FIGURE, LUNGHEZZE } from '@/lib/domain'
-import type { AvatarSeed, Figura, LunghezzaCapelli, ProfessioneKey } from '@/lib/domain'
+import { FIGURE, INCARNATI, LUNGHEZZE } from '@/lib/domain'
+import type {
+  AvatarSeed,
+  Figura,
+  Incarnato,
+  LunghezzaCapelli,
+  ProfessioneKey,
+} from '@/lib/domain'
 import type { FasciaEta, Proporzioni } from '@/lib/avatar/tipi'
 
-/** Quattro incarnati naturali, ben distanziati. */
-export const PELLI: readonly string[] = ['#F4D2B6', '#D49A6F', '#AC7442', '#6B4020']
+/**
+ * Quattro incarnati, ben distanziati ma non a salti: due tonalita' sole
+ * sarebbero un gradino che davanti a una famiglia vera si vede.
+ */
+export const PELLI: Record<Incarnato, string> = {
+  chiaro: '#F4D2B6',
+  olivastro: '#DBA97D',
+  ambrato: '#B87B47',
+  scuro: '#7A4A24',
+}
 
-/** Quattro colori di capelli naturali. L'ultimo e' il grigio dei capelli bianchi. */
-export const TINTE: readonly string[] = ['#2B2118', '#6B4423', '#C08A45', '#9AA0A6']
+/**
+ * Il colore dei capelli non ha un comando: segue l'incarnato su tonalita'
+ * coerenti. Sopra l'eta' del tempo libero diventa grigio.
+ */
+const CAPELLI_PER_INCARNATO: Record<Incarnato, string> = {
+  chiaro: '#8A6234',
+  olivastro: '#5E3C1E',
+  ambrato: '#3E2716',
+  scuro: '#241A14',
+}
 
-const INDICE_GRIGIO = 3
+export const GRIGIO = '#9AA0A6'
 
 export function colorePelle(seed: AvatarSeed): string {
-  return PELLI[modulo(seed.pelle, PELLI.length)] ?? PELLI[0]!
+  return PELLI[seed.incarnato] ?? PELLI.chiaro
 }
 
-export function coloreCapelli(seed: AvatarSeed): string {
-  return TINTE[modulo(seed.tinta, TINTE.length)] ?? TINTE[0]!
-}
-
-function modulo(v: number, n: number): number {
-  const i = Math.trunc(Number.isFinite(v) ? v : 0)
-  return ((i % n) + n) % n
+export function coloreCapelli(seed: AvatarSeed, eta: number): string {
+  if (eta >= AVATAR.fascia_senior) return GRIGIO
+  return CAPELLI_PER_INCARNATO[seed.incarnato] ?? CAPELLI_PER_INCARNATO.chiaro
 }
 
 // ---------------------------------------------------------------- dal nome
-
-function impronta(testo: string): number {
-  let h = 2166136261
-  for (let i = 0; i < testo.length; i += 1) {
-    h ^= testo.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return Math.abs(h)
-}
 
 /**
  * Nomi italiani in -a che sono maschili. Sono pochi e ricorrenti: vale la pena
@@ -52,9 +61,12 @@ const FEMMINILI_ALTRE = new Set([
 /**
  * Figura dedotta dal nome. E' un tentativo, non una regola: si corregge con un
  * tocco, ed e' per questo che il controllo sta sempre in vista.
+ *
+ * E' l'unica cosa che il nome decide. L'incarnato no: dedurre il colore della
+ * pelle da un nome sarebbe sbagliato, e infatti si sceglie.
  */
 export function figuraDaNome(nome: string): Figura {
-  const pulito = nome.trim().toLowerCase().split(/[\s'’-]/)[0] ?? ''
+  const pulito = nome.trim().toLowerCase().split(/[\s'\u2019-]/)[0] ?? ''
   if (!pulito) return 'femminile'
   if (FEMMINILI_ALTRE.has(pulito)) return 'femminile'
   if (pulito.endsWith('a')) return MASCHILI_IN_A.has(pulito) ? 'maschile' : 'femminile'
@@ -63,47 +75,33 @@ export function figuraDaNome(nome: string): Figura {
   return 'maschile'
 }
 
-/**
- * Incarnato e colore dei capelli, derivati dal nome. Nessun controllo in
- * interfaccia: due "Marta" della stessa eta' nascono uguali.
- *
- * Sopra l'eta' del tempo libero i capelli diventano grigi: e' l'unica cosa che
- * l'eta' decide al posto del nome.
- */
-export function seedDaNome(nome: string, eta: number): AvatarSeed {
-  const n = impronta(nome.trim().toLowerCase())
-  const senior = eta >= AVATAR.fascia_senior
-  return {
-    figura: figuraDaNome(nome),
-    capelli: 'corti',
-    pelle: n % PELLI.length,
-    // il grigio resta ai capelli bianchi: sotto, si sceglie fra gli altri tre
-    tinta: senior ? INDICE_GRIGIO : Math.floor(n / 7) % INDICE_GRIGIO,
-  }
+/** L'aspetto di partenza di una persona appena aggiunta alla scena. */
+export function seedDaNome(nome: string): AvatarSeed {
+  return { figura: figuraDaNome(nome), capelli: 'corti', incarnato: 'chiaro' }
 }
 
 /**
  * Riporta alla forma corrente un aspetto salvato.
  *
- * Le sessioni aperte prima della v1.1 hanno `capelli` e `taglio` numerici e non
- * hanno `figura`: si ricostruisce quello che manca dal nome, senza perdere la
- * sessione.
+ * Le sessioni aperte prima della v1.2 hanno `pelle` e `tinta` numerici: si
+ * riparte da `chiaro`, che e' il predefinito, senza perdere la sessione.
  */
-export function seedNormalizzato(grezzo: unknown, nome: string, eta: number): AvatarSeed {
-  const predefinito = seedDaNome(nome, eta)
+export function seedNormalizzato(grezzo: unknown, nome: string): AvatarSeed {
+  const predefinito = seedDaNome(nome)
   if (!grezzo || typeof grezzo !== 'object') return predefinito
 
   const v = grezzo as Partial<Record<keyof AvatarSeed, unknown>>
-  const figura = FIGURE.includes(v.figura as Figura) ? (v.figura as Figura) : predefinito.figura
-  const capelli = LUNGHEZZE.includes(v.capelli as LunghezzaCapelli)
-    ? (v.capelli as LunghezzaCapelli)
-    : predefinito.capelli
+  // 'lunghi' e' stato sostituito da 'raccolti': chi l'aveva scelto se lo ritrova
+  const capelli = v.capelli === 'lunghi' ? 'raccolti' : v.capelli
 
   return {
-    figura,
-    capelli,
-    pelle: typeof v.pelle === 'number' ? modulo(v.pelle, PELLI.length) : predefinito.pelle,
-    tinta: typeof v.tinta === 'number' ? modulo(v.tinta, TINTE.length) : predefinito.tinta,
+    figura: FIGURE.includes(v.figura as Figura) ? (v.figura as Figura) : predefinito.figura,
+    capelli: LUNGHEZZE.includes(capelli as LunghezzaCapelli)
+      ? (capelli as LunghezzaCapelli)
+      : predefinito.capelli,
+    incarnato: INCARNATI.includes(v.incarnato as Incarnato)
+      ? (v.incarnato as Incarnato)
+      : predefinito.incarnato,
   }
 }
 

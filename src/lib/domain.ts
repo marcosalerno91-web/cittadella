@@ -76,24 +76,30 @@ export function isProfessioneKey(v: string): v is ProfessioneKey {
 
 /** Le due sole scelte esposte al consulente. */
 export type Figura = 'femminile' | 'maschile'
-export type LunghezzaCapelli = 'cortissimi' | 'corti' | 'lunghi'
+export type LunghezzaCapelli = 'cortissimi' | 'corti' | 'raccolti'
+export type Incarnato = 'chiaro' | 'olivastro' | 'ambrato' | 'scuro'
 
 export const FIGURE: readonly Figura[] = ['femminile', 'maschile'] as const
-export const LUNGHEZZE: readonly LunghezzaCapelli[] = ['cortissimi', 'corti', 'lunghi'] as const
+export const LUNGHEZZE: readonly LunghezzaCapelli[] = ['cortissimi', 'corti', 'raccolti'] as const
+export const INCARNATI: readonly Incarnato[] = [
+  'chiaro',
+  'olivastro',
+  'ambrato',
+  'scuro',
+] as const
 
 /**
  * Aspetto dell'avatar.
  *
- * `figura` e `capelli` si scelgono con un tocco. `pelle` e `tinta` no: sono
- * derivati dal nome e non hanno alcun controllo in interfaccia.
+ * Tutte e tre le proprieta' si scelgono con un tocco. Nessuna viene dedotta
+ * dal nome: dedurre il colore della pelle da un nome e' sbagliato e basta.
+ * L'unica cosa che resta derivata e' il colore dei capelli, che segue
+ * l'incarnato scelto.
  */
 export interface AvatarSeed {
   figura: Figura
   capelli: LunghezzaCapelli
-  /** indice 0-3 negli incarnati, derivato dal nome */
-  pelle: number
-  /** indice 0-3 nei colori di capelli, derivato dal nome */
-  tinta: number
+  incarnato: Incarnato
 }
 
 export interface FamilyMember {

@@ -273,33 +273,49 @@ export function Capelli({
     )
   }
 
-  // lunghi: scende oltre le orecchie fino alle spalle
+  // Raccolti: capelli lunghi legati dietro.
+  //
+  // La versione sciolta e' stata provata due volte: la prima si fermava alle
+  // spalle e sembrava un caschetto, la seconda scendeva oltre e i due lati
+  // liberi leggevano come codini. Raccolti e' una forma sola, piatta e chiusa,
+  // che in sala si legge come "capelli lunghi" lo stesso.
   return (
-    <path
-      d={[
-        `M${x - r * 1.06} ${y + r * 1.0}`,
-        `L${x - r * 1.06} ${y - r * 0.16}`,
-        `a${r * 1.06} ${r} 0 0 1 ${r * 2.12} 0`,
-        `L${x + r * 1.06} ${y + r * 1.0}`,
-        `q${-r * 0.28} ${r * 0.22} ${-r * 0.44} ${-r * 0.08}`,
-        `L${x + r * 0.66} ${y - r * 0.28}`,
-        `q${-r * 0.66} ${r * 0.3} ${-r * 1.32} 0`,
-        `L${x - r * 0.62} ${y + r * 0.92}`,
-        `q${-r * 0.16} ${r * 0.3} ${-r * 0.44} ${r * 0.08}`,
-        'z',
-      ].join(' ')}
-      {...contorno}
-    />
+    <g {...contorno}>
+      {/* lo chignon, dietro la testa */}
+      <circle cx={x} cy={y - r * 1.02} r={r * 0.46} />
+      {/* la calotta, che copre le tempie e scende dietro le orecchie */}
+      <path
+        d={[
+          `M${x - r * 1.04} ${y + r * 0.52}`,
+          `L${x - r * 1.04} ${y - r * 0.08}`,
+          `a${r * 1.04} ${r * 1.02} 0 0 1 ${r * 2.08} 0`,
+          `L${x + r * 1.04} ${y + r * 0.52}`,
+          `q0 ${r * 0.2} ${-r * 0.2} ${r * 0.2}`,
+          `q${-r * 0.14} 0 ${-r * 0.14} ${-r * 0.2}`,
+          `L${x + r * 0.72} ${y + r * 0.3}`,
+          // la fronte resta scoperta
+          `q${-r * 0.72} ${r * 0.34} ${-r * 1.44} 0`,
+          `L${x - r * 0.7} ${y + r * 0.52}`,
+          `q0 ${r * 0.2} ${-r * 0.14} ${r * 0.2}`,
+          `q${-r * 0.2} 0 ${-r * 0.2} ${-r * 0.2}`,
+          'Z',
+        ].join(' ')}
+      />
+    </g>
   )
 }
 
 /** Strato pelle + capelli + espressione, pronto da montare sopra il vestiario. */
-export function TestaCompleta({ P, seed }: Pick<ContestoAvatar, 'P' | 'seed'>) {
+export function TestaCompleta({
+  P,
+  seed,
+  eta,
+}: Pick<ContestoAvatar, 'P' | 'seed'> & { eta: number }) {
   return (
     <g>
       <Testa P={P} pelle={colorePelle(seed)} />
       <Viso P={P} />
-      <Capelli P={P} colore={coloreCapelli(seed)} lunghezza={seed.capelli} />
+      <Capelli P={P} colore={coloreCapelli(seed, eta)} lunghezza={seed.capelli} />
     </g>
   )
 }

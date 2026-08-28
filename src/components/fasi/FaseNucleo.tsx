@@ -9,7 +9,7 @@ import { Campo } from '@/components/ui/Campo'
 import { SceltaAspetto } from '@/components/ui/SceltaAspetto'
 import { SelettoreProfessione } from '@/components/ui/SelettoreProfessione'
 import { StepperEta } from '@/components/ui/StepperEta'
-import { professioneSuggerita, seedDaNome } from '@/lib/avatar/palette'
+import { figuraDaNome, professioneSuggerita, seedDaNome } from '@/lib/avatar/palette'
 import * as copy from '@/content/copy'
 import { RUOLI_FAMIGLIA } from '@/lib/domain'
 import type { FamilyMember, RuoloFamiglia } from '@/lib/domain'
@@ -36,11 +36,6 @@ export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
       membri.map((m, i) => {
         if (i !== indice) return m
         const unito = { ...m, ...patch }
-        // sopra l'eta' del tempo libero i capelli diventano grigi
-        if (patch.eta !== undefined) {
-          const dalNome = seedDaNome(unito.nome, unito.eta)
-          unito.avatar_seed = { ...unito.avatar_seed, tinta: dalNome.tinta }
-        }
         // eta' cambiata: se il mestiere non e' stato scelto a mano, si adegua
         if (patch.eta !== undefined && !m.professione_libera) {
           const suggerita = professioneSuggerita(unito.eta)
@@ -64,7 +59,7 @@ export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
       professione_key: professioneSuggerita(eta) ?? 'impiegato',
       professione_libera: null,
       ruolo_famiglia: membri.length === 0 ? 'intestatario' : 'figlio',
-      avatar_seed: seedDaNome('', eta),
+      avatar_seed: seedDaNome(''),
       ordine: membri.length,
     }
     onCambia([...membri, nuovo])
@@ -173,14 +168,13 @@ export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
               onChange={(e) => {
                 const nome = e.target.value
                 const patch: Partial<FamilyMember> = { nome }
-                // incarnato e tinta seguono sempre il nome: non hanno controllo.
-                // La figura segue solo finche' non e' stata scelta a mano.
-                const dalNome = seedDaNome(nome, inModifica.eta)
-                patch.avatar_seed = {
-                  ...inModifica.avatar_seed,
-                  pelle: dalNome.pelle,
-                  tinta: dalNome.tinta,
-                  ...(figuraToccata.has(inModifica.id) ? {} : { figura: dalNome.figura }),
+                // dal nome si prova a dedurre solo la figura, e solo finche'
+                // non e' stata scelta a mano. L'incarnato si sceglie e basta.
+                if (!figuraToccata.has(inModifica.id)) {
+                  patch.avatar_seed = {
+                    ...inModifica.avatar_seed,
+                    figura: figuraDaNome(nome),
+                  }
                 }
                 aggiorna(aperto, patch)
               }}

@@ -112,7 +112,7 @@ function membroDaRiga(r: RigaMembro): FamilyMember {
     ruolo_famiglia: r.ruolo_famiglia as RuoloFamiglia,
     // le sessioni aperte prima della v1.1 hanno un aspetto di forma diversa:
     // seedNormalizzato ricostruisce quello che manca invece di perderle
-    avatar_seed: seedNormalizzato(r.avatar_seed, r.nome, r.eta),
+    avatar_seed: seedNormalizzato(r.avatar_seed, r.nome),
     ordine: r.ordine,
   }
 }

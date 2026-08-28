@@ -162,7 +162,7 @@ async function eseguiProva(): Promise<Esito[]> {
               professione_key: 'casual',
               professione_libera: null,
               ruolo_famiglia: 'altro',
-              avatar_seed: { figura: 'maschile', capelli: 'corti', pelle: 0, tinta: 0 },
+              avatar_seed: { figura: 'maschile', capelli: 'corti', incarnato: 'chiaro' },
               ordine: 0,
             },
           ])

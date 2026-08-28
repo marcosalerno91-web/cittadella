@@ -8,8 +8,8 @@
 import { notFound } from 'next/navigation'
 
 import { Avatar } from '@/components/scena/Avatar'
-import { PELLI, TINTE } from '@/lib/avatar/palette'
-import { FIGURE, LUNGHEZZE, PROFESSIONI } from '@/lib/domain'
+
+import { FIGURE, INCARNATI, LUNGHEZZE, PROFESSIONI } from '@/lib/domain'
 import type { AvatarSeed } from '@/lib/domain'
 import * as copy from '@/content/copy'
 
@@ -49,8 +49,8 @@ export default async function PaginaAvatar({
       <h1 className="text-4xl">Motore avatar</h1>
       <p className="mt-2 text-lg text-notte/60">
         Due figure per {FASCE.length} fasce d’eta’, {LUNGHEZZE.length} lunghezze di capelli:{' '}
-        {FIGURE.length * LUNGHEZZE.length} combinazioni per fascia. {PELLI.length} incarnati e{' '}
-        {TINTE.length} colori di capelli, derivati dal nome e senza controllo in interfaccia.
+        {FIGURE.length * LUNGHEZZE.length} combinazioni per fascia, per ciascuno dei{' '}
+        {INCARNATI.length} incarnati. Il colore dei capelli segue l’incarnato e non ha comando.
       </p>
       <a
         href={grande ? '/dev/avatar' : '/dev/avatar?grande=1'}
@@ -73,7 +73,7 @@ export default async function PaginaAvatar({
           <ul className="mt-3 grid grid-cols-3 gap-4 sm:grid-cols-6">
             {FIGURE.flatMap((figura) =>
               LUNGHEZZE.map((capelli) => {
-                const seed: AvatarSeed = { figura, capelli, pelle: 1, tinta: fascia.eta >= 66 ? 3 : 1 }
+                const seed: AvatarSeed = { figura, capelli, incarnato: 'olivastro' }
                 return (
                   <li
                     key={`${figura}-${capelli}`}
@@ -115,8 +115,7 @@ export default async function PaginaAvatar({
               seed={{
                 figura: indice % 2 === 0 ? 'femminile' : 'maschile',
                 capelli: LUNGHEZZE[indice % LUNGHEZZE.length] ?? 'corti',
-                pelle: indice % PELLI.length,
-                tinta: professione === 'tempo_libero' ? 3 : indice % 3,
+                incarnato: INCARNATI[indice % INCARNATI.length] ?? 'chiaro',
               }}
               className={`${misura} w-auto`}
             />
@@ -128,26 +127,28 @@ export default async function PaginaAvatar({
         ))}
       </ul>
 
-      {/* ------------------------------------------ incarnati e tinte */}
-      <h2 className="mt-14 text-2xl">Incarnati e colori di capelli</h2>
+      {/* ------------------------------------------ gli incarnati */}
+      <h2 className="mt-14 text-2xl">I quattro incarnati</h2>
       <p className="mt-1 text-base text-notte/55">
-        Vengono dal nome. Il grigio e’ riservato a chi ha superato l’eta’ del lavoro.
+        Si scelgono con un tocco. Il colore dei capelli li segue, e sopra l’eta’ del
+        tempo libero diventa grigio.
       </p>
       <ul className="mt-4 flex flex-wrap gap-6">
-        {PELLI.map((_, i) => (
-          <li key={i} className="flex flex-col items-center">
-            <Avatar
-              nome={`variante-${i}`}
-              eta={34}
-              professione="impiegato"
-              seed={{ figura: i % 2 === 0 ? 'femminile' : 'maschile', capelli: 'corti', pelle: i, tinta: i }}
-              className="h-40 w-auto"
-            />
-            <span className="mt-1 text-sm text-notte/50">
-              incarnato {i + 1} · tinta {i + 1}
-            </span>
-          </li>
-        ))}
+        {INCARNATI.flatMap((incarnato) =>
+          [34, 72].map((eta) => (
+            <li key={`${incarnato}-${eta}`} className="flex flex-col items-center">
+              <Avatar
+                nome={incarnato}
+                eta={eta}
+                professione="impiegato"
+                seed={{ figura: 'femminile', capelli: 'raccolti', incarnato }}
+                className="h-40 w-auto"
+              />
+              <span className="mt-1 text-sm font-semibold">{copy.incarnati[incarnato]}</span>
+              <span className="text-sm text-notte/50">{eta} anni</span>
+            </li>
+          )),
+        )}
       </ul>
     </main>
   )

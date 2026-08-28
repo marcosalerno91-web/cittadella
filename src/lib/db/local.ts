@@ -245,7 +245,7 @@ export const localRepository: Repository = {
         .filter((m) => m.session_id === sessionId)
         .sort((a, b) => a.ordine - b.ordine)
         // le sessioni aperte prima della v1.1 hanno un aspetto di forma diversa
-        .map((m) => ({ ...m, avatar_seed: seedNormalizzato(m.avatar_seed, m.nome, m.eta) })),
+        .map((m) => ({ ...m, avatar_seed: seedNormalizzato(m.avatar_seed, m.nome) })),
       finances: db.finances.find((f) => f.session_id === sessionId) ?? financesVuote(sessionId),
       fortress: fortezzaAllineata(
         sessionId,

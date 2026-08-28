@@ -17,11 +17,11 @@ import type { BloccoKey, FamilyMember, FortressItem, StatoVoce } from '@/lib/dom
 export const metadata = { title: 'Banco di prova della cittadella' }
 
 const FAMIGLIA: FamilyMember[] = [
-  membro('Marta', 44, 'insegnante', 'femminile', 'lunghi', 0, 1),
-  membro('Davide', 47, 'artigiano', 'maschile', 'corti', 1, 0),
-  membro('Luca', 16, 'studente', 'maschile', 'cortissimi', 0, 1),
-  membro('Sofia', 5, 'bambino', 'femminile', 'lunghi', 0, 2),
-  membro('Giovanni', 74, 'tempo_libero', 'maschile', 'corti', 0, 3),
+  membro('Marta', 44, 'insegnante', 'femminile', 'raccolti', 'chiaro'),
+  membro('Davide', 47, 'artigiano', 'maschile', 'corti', 'ambrato'),
+  membro('Luca', 16, 'studente', 'maschile', 'cortissimi', 'olivastro'),
+  membro('Sofia', 5, 'bambino', 'femminile', 'raccolti', 'chiaro'),
+  membro('Giovanni', 74, 'tempo_libero', 'maschile', 'corti', 'chiaro'),
 ]
 
 function membro(
@@ -29,9 +29,8 @@ function membro(
   eta: number,
   professione_key: FamilyMember['professione_key'],
   figura: 'femminile' | 'maschile',
-  capelli: 'cortissimi' | 'corti' | 'lunghi',
-  pelle: number,
-  tinta: number,
+  capelli: 'cortissimi' | 'corti' | 'raccolti',
+  incarnato: 'chiaro' | 'olivastro' | 'ambrato' | 'scuro',
 ): FamilyMember {
   return {
     id: nome,
@@ -41,7 +40,7 @@ function membro(
     professione_key,
     professione_libera: null,
     ruolo_famiglia: 'altro',
-    avatar_seed: { figura, capelli, pelle, tinta },
+    avatar_seed: { figura, capelli, incarnato },
     ordine: 0,
   }
 }

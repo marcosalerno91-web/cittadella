@@ -1,15 +1,18 @@
 'use client'
 
-import { FIGURE, LUNGHEZZE } from '@/lib/domain'
-import type { AvatarSeed, Figura, LunghezzaCapelli } from '@/lib/domain'
+import { PELLI } from '@/lib/avatar/palette'
+import { FIGURE, INCARNATI, LUNGHEZZE } from '@/lib/domain'
+import type { AvatarSeed, Figura, Incarnato, LunghezzaCapelli } from '@/lib/domain'
 import * as copy from '@/content/copy'
 
 /**
- * Le due sole scelte estetiche dell'applicazione: figura e lunghezza dei
- * capelli. Stanno in vista, nella riga del componente, senza menu: si cambiano
- * con un tocco senza uscire dalla scena.
+ * Le tre scelte estetiche dell'applicazione: figura, capelli, incarnato.
+ * Stanno in vista, nella riga del componente, senza menu: si cambiano con un
+ * tocco senza uscire dalla scena.
  *
- * Incarnato e colore dei capelli non hanno controllo: vengono dal nome.
+ * L'incarnato si sceglie e non si deduce: ricavare il colore della pelle da un
+ * nome sarebbe sbagliato. Il colore dei capelli invece non ha comando: segue
+ * l'incarnato, e sopra l'eta' del tempo libero diventa grigio.
  */
 export function SceltaAspetto({
   seed,
@@ -46,6 +49,20 @@ export function SceltaAspetto({
             onClick={() => onCambia({ ...seed, capelli })}
           >
             <SegnoCapelli lunghezza={capelli} />
+          </Tasto>
+        ))}
+      </Gruppo>
+
+      <Gruppo etichetta={copy.nucleo.incarnato}>
+        {INCARNATI.map((incarnato) => (
+          <Tasto
+            key={incarnato}
+            attivo={seed.incarnato === incarnato}
+            disabilitato={disabilitato}
+            etichetta={copy.incarnati[incarnato]}
+            onClick={() => onCambia({ ...seed, incarnato })}
+          >
+            <SegnoIncarnato incarnato={incarnato} />
           </Tasto>
         ))}
       </Gruppo>
@@ -109,13 +126,24 @@ function SegnoFigura({ figura }: { figura: Figura }) {
   )
 }
 
-/** Tre teste viste di fronte, con la chioma che si allunga. */
+/** Una pastiglia del colore vero: e' l'unica icona che non ha bisogno di disegno. */
+function SegnoIncarnato({ incarnato }: { incarnato: Incarnato }) {
+  return (
+    <span
+      className="block h-7 w-7 rounded-full border-2 border-notte"
+      style={{ background: PELLI[incarnato] }}
+    />
+  )
+}
+
+/** Tre teste viste di fronte: rasata, con la frangia, con lo chignon. */
 function SegnoCapelli({ lunghezza }: { lunghezza: LunghezzaCapelli }) {
   const notte = 'var(--notte)'
-  const fondo = lunghezza === 'cortissimi' ? 11.5 : lunghezza === 'corti' ? 18 : 26
+  const fondo = lunghezza === 'cortissimi' ? 11.5 : 18
   return (
     <svg viewBox="0 0 32 32" className="h-7 w-7" fill="none" strokeLinejoin="round">
       <rect x="9" y="7" width="14" height="16" rx="6" stroke={notte} strokeWidth="2.2" />
+      {lunghezza === 'raccolti' ? <circle cx="16" cy="5.5" r="3.4" fill={notte} /> : null}
       <path
         d={`M8 13 a8 8 0 0 1 16 0 V${fondo} q-2.4 1.4 -3.4 -0.4 V12.5 q-4.6 2 -9.2 0 V${fondo - 0.4} q-1 1.8 -3.4 0.4 Z`}
         fill={notte}

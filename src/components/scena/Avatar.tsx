@@ -57,7 +57,7 @@ export function ContenutoAvatar({
   professione,
   seed,
 }: Omit<PropsAvatar, 'className' | 'vivo'>) {
-  const semi = seedNormalizzato(seed, nome, eta)
+  const semi = seedNormalizzato(seed, nome)
   const P = proporzioni(eta, semi.figura)
   const pelle = colorePelle(semi)
   const abito = vestito(professione)
@@ -73,7 +73,7 @@ export function ContenutoAvatar({
       {/* le braccia si posano sopra al capo: la loro cima sale oltre la linea
           delle spalle, cosi' il giunto si chiude e la figura resta un corpo solo */}
       <Braccia P={P} colore={abito.manica} pelle={pelle} manicaFino={abito.manicaFino} />
-      <TestaCompleta P={P} seed={semi} />
+      <TestaCompleta P={P} seed={semi} eta={eta} />
       {Copricapo ? <Copricapo P={P} /> : null}
       {Accessorio ? <Accessorio P={P} /> : null}
     </g>

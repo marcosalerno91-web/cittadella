@@ -11,6 +11,7 @@
 import type {
   BloccoKey,
   Figura,
+  Incarnato,
   LunghezzaCapelli,
   ProfessioneKey,
   RenditaKey,
@@ -135,6 +136,7 @@ export const nucleo = {
   ruolo: 'In famiglia e’',
   figura: 'Figura',
   capelli: 'Capelli',
+  incarnato: 'Incarnato',
   rimuovi: 'Togli dalla scena',
   sposta_su: 'Sposta prima',
   sposta_giu: 'Sposta dopo',
@@ -149,10 +151,17 @@ export const figure: Record<Figura, string> = {
   maschile: 'Maschile',
 }
 
+export const incarnati: Record<Incarnato, string> = {
+  chiaro: 'Chiaro',
+  olivastro: 'Olivastro',
+  ambrato: 'Ambrato',
+  scuro: 'Scuro',
+}
+
 export const lunghezze: Record<LunghezzaCapelli, string> = {
   cortissimi: 'Cortissimi',
   corti: 'Corti',
-  lunghi: 'Lunghi',
+  raccolti: 'Raccolti',
 }
 
 export const ruoliFamiglia: Record<RuoloFamiglia, string> = {
