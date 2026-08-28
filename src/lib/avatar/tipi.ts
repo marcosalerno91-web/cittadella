@@ -1,4 +1,4 @@
-import type { AvatarSeed, ProfessioneKey } from '@/lib/domain'
+import type { AvatarSeed, Figura, ProfessioneKey } from '@/lib/domain'
 
 /**
  * Tutti gli avatar condividono questo viewBox. E' la ragione per cui si possono
@@ -16,6 +16,7 @@ export type FasciaEta = 'bambino' | 'ragazzo' | 'adulto' | 'senior'
  */
 export interface Proporzioni {
   fascia: FasciaEta
+  figura: Figura
   /** testa */
   testaX: number
   testaY: number
@@ -27,6 +28,8 @@ export interface Proporzioni {
   spalleW: number
   /** vita */
   vitaY: number
+  /** quanto il busto rientra a meta' altezza prima di riaprirsi. 0 = dritto */
+  svasatura: number
   vitaW: number
   /** fine del busto / inizio gambe */
   ancheY: number

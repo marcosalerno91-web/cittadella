@@ -11,9 +11,10 @@
       "professione_key": "insegnante",
       "ruolo_famiglia": "intestatario",
       "avatar_seed": {
-        "pelle": 1,
-        "capelli": 1,
-        "taglio": 2
+        "figura": "femminile",
+        "capelli": "lunghi",
+        "pelle": 0,
+        "tinta": 1
       }
     },
     {
@@ -22,9 +23,10 @@
       "professione_key": "artigiano",
       "ruolo_famiglia": "partner",
       "avatar_seed": {
-        "pelle": 2,
-        "capelli": 0,
-        "taglio": 0
+        "figura": "maschile",
+        "capelli": "corti",
+        "pelle": 1,
+        "tinta": 0
       }
     },
     {
@@ -33,9 +35,10 @@
       "professione_key": "studente",
       "ruolo_famiglia": "figlio",
       "avatar_seed": {
-        "pelle": 1,
-        "capelli": 1,
-        "taglio": 4
+        "figura": "maschile",
+        "capelli": "cortissimi",
+        "pelle": 0,
+        "tinta": 1
       }
     },
     {
@@ -44,9 +47,10 @@
       "professione_key": "bambino",
       "ruolo_famiglia": "figlio",
       "avatar_seed": {
-        "pelle": 1,
-        "capelli": 3,
-        "taglio": 3
+        "figura": "femminile",
+        "capelli": "lunghi",
+        "pelle": 0,
+        "tinta": 2
       }
     },
     {
@@ -55,9 +59,10 @@
       "professione_key": "tempo_libero",
       "ruolo_famiglia": "genitore",
       "avatar_seed": {
+        "figura": "maschile",
+        "capelli": "corti",
         "pelle": 0,
-        "capelli": 5,
-        "taglio": 0
+        "tinta": 3
       }
     }
   ],

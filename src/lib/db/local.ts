@@ -8,6 +8,7 @@
 
 import { cookies } from 'next/headers'
 
+import { seedNormalizzato } from '@/lib/avatar/palette'
 import { conCrm } from '@/lib/engine/crm'
 import { emotionsVuote, financesVuote, fortezzaAllineata, fortezzaVuota } from '@/lib/db/defaults'
 import { bloccoDiVoce } from '@/config/engine'
@@ -242,7 +243,9 @@ export const localRepository: Repository = {
       client,
       members: db.members
         .filter((m) => m.session_id === sessionId)
-        .sort((a, b) => a.ordine - b.ordine),
+        .sort((a, b) => a.ordine - b.ordine)
+        // le sessioni aperte prima della v1.1 hanno un aspetto di forma diversa
+        .map((m) => ({ ...m, avatar_seed: seedNormalizzato(m.avatar_seed, m.nome, m.eta) })),
       finances: db.finances.find((f) => f.session_id === sessionId) ?? financesVuote(sessionId),
       fortress: fortezzaAllineata(
         sessionId,

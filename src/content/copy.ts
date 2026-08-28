@@ -10,6 +10,8 @@
 
 import type {
   BloccoKey,
+  Figura,
+  LunghezzaCapelli,
   ProfessioneKey,
   RenditaKey,
   RuoloFamiglia,
@@ -131,8 +133,8 @@ export const nucleo = {
   professione_libera_aiuto:
     'Non e’ in elenco? Scrivilo pure: lo teniamo scritto e usiamo una figura neutra.',
   ruolo: 'In famiglia e’',
-  aspetto: 'Aspetto',
-  aspetto_cambia: 'Cambia',
+  figura: 'Figura',
+  capelli: 'Capelli',
   rimuovi: 'Togli dalla scena',
   sposta_su: 'Sposta prima',
   sposta_giu: 'Sposta dopo',
@@ -141,6 +143,17 @@ export const nucleo = {
   ritratto_sottotitolo: 'Questa e’ la famiglia di cui parleremo per tutto il resto dell’incontro.',
   conferma_rimozione: 'Tolgo {nome} dalla scena?',
 } as const
+
+export const figure: Record<Figura, string> = {
+  femminile: 'Femminile',
+  maschile: 'Maschile',
+}
+
+export const lunghezze: Record<LunghezzaCapelli, string> = {
+  cortissimi: 'Cortissimi',
+  corti: 'Corti',
+  lunghi: 'Lunghi',
+}
 
 export const ruoliFamiglia: Record<RuoloFamiglia, string> = {
   intestatario: 'La persona con cui parlo',

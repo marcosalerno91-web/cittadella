@@ -74,14 +74,26 @@ export function isProfessioneKey(v: string): v is ProfessioneKey {
   return (PROFESSIONI as readonly string[]).includes(v)
 }
 
-/** Semi deterministici per l'aspetto dell'avatar. */
+/** Le due sole scelte esposte al consulente. */
+export type Figura = 'femminile' | 'maschile'
+export type LunghezzaCapelli = 'cortissimi' | 'corti' | 'lunghi'
+
+export const FIGURE: readonly Figura[] = ['femminile', 'maschile'] as const
+export const LUNGHEZZE: readonly LunghezzaCapelli[] = ['cortissimi', 'corti', 'lunghi'] as const
+
+/**
+ * Aspetto dell'avatar.
+ *
+ * `figura` e `capelli` si scelgono con un tocco. `pelle` e `tinta` no: sono
+ * derivati dal nome e non hanno alcun controllo in interfaccia.
+ */
 export interface AvatarSeed {
-  /** indice 0-5 nella palette pelle */
+  figura: Figura
+  capelli: LunghezzaCapelli
+  /** indice 0-3 negli incarnati, derivato dal nome */
   pelle: number
-  /** indice 0-5 nella palette capelli */
-  capelli: number
-  /** indice 0-5 nei tagli disponibili */
-  taglio: number
+  /** indice 0-3 nei colori di capelli, derivato dal nome */
+  tinta: number
 }
 
 export interface FamilyMember {

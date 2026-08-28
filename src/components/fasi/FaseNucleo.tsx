@@ -6,18 +6,26 @@ import { Avatar } from '@/components/scena/Avatar'
 import { RitrattoDiGruppo } from '@/components/scena/RitrattoDiGruppo'
 import { Bottone } from '@/components/ui/Bottone'
 import { Campo } from '@/components/ui/Campo'
+import { SceltaAspetto } from '@/components/ui/SceltaAspetto'
 import { SelettoreProfessione } from '@/components/ui/SelettoreProfessione'
 import { StepperEta } from '@/components/ui/StepperEta'
-import { CAPELLI, PELLI, TAGLI, professioneSuggerita, seedDaNome } from '@/lib/avatar/palette'
+import { professioneSuggerita, seedDaNome } from '@/lib/avatar/palette'
 import * as copy from '@/content/copy'
 import { RUOLI_FAMIGLIA } from '@/lib/domain'
-import type { AvatarSeed, FamilyMember, RuoloFamiglia } from '@/lib/domain'
+import type { FamilyMember, RuoloFamiglia } from '@/lib/domain'
 
 interface Props {
   membri: FamilyMember[]
   onCambia: (membri: FamilyMember[]) => void
   soloLettura: boolean
 }
+
+/**
+ * Chi ha scelto la figura a mano non se la vede piu' cambiare digitando il nome.
+ * Vive fuori dallo stato React perche' e' una preferenza dell'incontro, non un
+ * dato della sessione: non va salvata e non va ricostruita alla ripresa.
+ */
+const figuraToccata = new Set<string>()
 
 export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
   // indice del membro aperto in modifica: e' lui che si veste in tempo reale
@@ -28,6 +36,11 @@ export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
       membri.map((m, i) => {
         if (i !== indice) return m
         const unito = { ...m, ...patch }
+        // sopra l'eta' del tempo libero i capelli diventano grigi
+        if (patch.eta !== undefined) {
+          const dalNome = seedDaNome(unito.nome, unito.eta)
+          unito.avatar_seed = { ...unito.avatar_seed, tinta: dalNome.tinta }
+        }
         // eta' cambiata: se il mestiere non e' stato scelto a mano, si adegua
         if (patch.eta !== undefined && !m.professione_libera) {
           const suggerita = professioneSuggerita(unito.eta)
@@ -51,7 +64,7 @@ export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
       professione_key: professioneSuggerita(eta) ?? 'impiegato',
       professione_libera: null,
       ruolo_famiglia: membri.length === 0 ? 'intestatario' : 'figlio',
-      avatar_seed: { pelle: 0, capelli: 0, taglio: 0 },
+      avatar_seed: seedDaNome('', eta),
       ordine: membri.length,
     }
     onCambia([...membri, nuovo])
@@ -160,9 +173,14 @@ export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
               onChange={(e) => {
                 const nome = e.target.value
                 const patch: Partial<FamilyMember> = { nome }
-                // finche' l'aspetto non e' stato toccato a mano, segue il nome
-                if (aspettoNonToccato(inModifica.avatar_seed)) {
-                  patch.avatar_seed = seedDaNome(nome, inModifica.eta)
+                // incarnato e tinta seguono sempre il nome: non hanno controllo.
+                // La figura segue solo finche' non e' stata scelta a mano.
+                const dalNome = seedDaNome(nome, inModifica.eta)
+                patch.avatar_seed = {
+                  ...inModifica.avatar_seed,
+                  pelle: dalNome.pelle,
+                  tinta: dalNome.tinta,
+                  ...(figuraToccata.has(inModifica.id) ? {} : { figura: dalNome.figura }),
                 }
                 aggiorna(aperto, patch)
               }}
@@ -202,9 +220,15 @@ export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
               </div>
             </div>
 
-            <SelettoreAspetto
+            <SceltaAspetto
               seed={inModifica.avatar_seed}
-              onCambia={(avatar_seed) => aggiorna(aperto, { avatar_seed })}
+              disabilitato={soloLettura}
+              onCambia={(avatar_seed) => {
+                if (avatar_seed.figura !== inModifica.avatar_seed.figura) {
+                  figuraToccata.add(inModifica.id)
+                }
+                aggiorna(aperto, { avatar_seed })
+              }}
             />
 
             {!soloLettura ? (
@@ -231,59 +255,6 @@ export function FaseNucleo({ membri, onCambia, soloLettura }: Props) {
       </section>
     </div>
   )
-}
-
-/** Sei varianti rapide di aspetto: incarnato, capelli, taglio. */
-function SelettoreAspetto({
-  seed,
-  onCambia,
-}: {
-  seed: AvatarSeed
-  onCambia: (seed: AvatarSeed) => void
-}) {
-  const righe: { etichetta: string; chiave: keyof AvatarSeed; lunghezza: number }[] = [
-    { etichetta: 'Incarnato', chiave: 'pelle', lunghezza: PELLI.length },
-    { etichetta: 'Capelli', chiave: 'capelli', lunghezza: CAPELLI.length },
-    { etichetta: 'Taglio', chiave: 'taglio', lunghezza: TAGLI.length },
-  ]
-
-  return (
-    <div className="flex flex-col gap-3">
-      <span className="text-base font-semibold text-notte/70">{copy.nucleo.aspetto}</span>
-      {righe.map((riga) => (
-        <div key={riga.chiave} className="flex items-center gap-3">
-          <span className="w-24 shrink-0 text-base text-notte/55">{riga.etichetta}</span>
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: riga.lunghezza }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`${riga.etichetta} ${i + 1}`}
-                onClick={() => onCambia({ ...seed, [riga.chiave]: i })}
-                className={`h-9 w-9 min-h-0 rounded-full border-2 ${
-                  seed[riga.chiave] === i ? 'border-notte' : 'border-notte/20'
-                }`}
-                style={
-                  riga.chiave === 'taglio'
-                    ? undefined
-                    : { background: (riga.chiave === 'pelle' ? PELLI : CAPELLI)[i] }
-                }
-              >
-                {riga.chiave === 'taglio' ? (
-                  <span className="text-sm font-semibold">{i + 1}</span>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/** L'aspetto e' ancora quello di partenza: puo' seguire il nome. */
-function aspettoNonToccato(seed: AvatarSeed): boolean {
-  return seed.pelle === 0 && seed.capelli === 0 && seed.taglio === 0
 }
 
 /**

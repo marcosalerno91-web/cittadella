@@ -5,9 +5,10 @@
  * fascia cambiano i numeri, non i tracciati.
  */
 
-import { colorePelle, coloreCapelli, taglio } from '@/lib/avatar/palette'
+import { colorePelle, coloreCapelli } from '@/lib/avatar/palette'
 import { TRATTO, TRATTO_SOTTILE } from '@/lib/avatar/tipi'
 import type { ContestoAvatar, Proporzioni } from '@/lib/avatar/tipi'
+import type { LunghezzaCapelli } from '@/lib/domain'
 
 const NOTTE = 'var(--notte)'
 
@@ -67,9 +68,11 @@ export function Braccia({
   return (
     <g>
       {[-1, 1].map((lato) => {
-        // il braccio entra sotto la spalla: e' il busto, disegnato dopo, a
-        // coprirne l'attacco e a farlo leggere come un corpo solo
-        const x = P.testaX + lato * (P.spalleW - spessore * 0.16) - spessore / 2
+        // il braccio cade lungo il punto piu' largo del busto: con la figura
+        // femminile i fianchi possono superare le spalle, e la mano non deve
+        // finire dentro la sagoma
+        const largo = Math.max(P.spalleW, P.vitaW)
+        const x = P.testaX + lato * (largo - spessore * 0.16) - spessore / 2
         return (
           <g key={lato}>
             {/* braccio nudo, completo: la manica ci si posa sopra */}
@@ -125,17 +128,40 @@ export function Busto({ P, colore }: { P: Proporzioni; colore: string }) {
 export function sagomaBusto(P: Proporzioni, allunga = 0): string {
   const sx = P.testaX - P.spalleW
   const dx = P.testaX + P.spalleW
-  const vsx = P.testaX - P.vitaW
-  const vdx = P.testaX + P.vitaW
+  const bsx = P.testaX - P.vitaW
+  const bdx = P.testaX + P.vitaW
   const fondo = P.ancheY + allunga
+
+  if (P.svasatura <= 0) {
+    // figura dritta: dalle spalle scende al fondo senza rientrare
+    return [
+      `M${sx + 6} ${P.spalleY}`,
+      `Q${sx} ${P.spalleY} ${sx} ${P.spalleY + 5}`,
+      `L${bsx} ${fondo - 6}`,
+      `Q${bsx} ${fondo} ${bsx + 6} ${fondo}`,
+      `L${bdx - 6} ${fondo}`,
+      `Q${bdx} ${fondo} ${bdx} ${fondo - 6}`,
+      `L${dx} ${P.spalleY + 5}`,
+      `Q${dx} ${P.spalleY} ${dx - 6} ${P.spalleY}`,
+      'Z',
+    ].join(' ')
+  }
+
+  // figura con la vita segnata: il fianco rientra a meta' busto e riapre
+  const vitaSx = P.testaX - (P.vitaW - P.svasatura)
+  const vitaDx = P.testaX + (P.vitaW - P.svasatura)
+  const yVita = P.spalleY + (fondo - P.spalleY) * 0.52
+
   return [
     `M${sx + 6} ${P.spalleY}`,
     `Q${sx} ${P.spalleY} ${sx} ${P.spalleY + 5}`,
-    `L${vsx} ${fondo - 6}`,
-    `Q${vsx} ${fondo} ${vsx + 6} ${fondo}`,
-    `L${vdx - 6} ${fondo}`,
-    `Q${vdx} ${fondo} ${vdx} ${fondo - 6}`,
-    `L${dx} ${P.spalleY + 5}`,
+    `C${sx} ${P.spalleY + 14} ${vitaSx} ${yVita - 10} ${vitaSx} ${yVita}`,
+    `C${vitaSx} ${yVita + 12} ${bsx} ${fondo - 18} ${bsx} ${fondo - 6}`,
+    `Q${bsx} ${fondo} ${bsx + 6} ${fondo}`,
+    `L${bdx - 6} ${fondo}`,
+    `Q${bdx} ${fondo} ${bdx} ${fondo - 6}`,
+    `C${bdx} ${fondo - 18} ${vitaDx} ${yVita + 12} ${vitaDx} ${yVita}`,
+    `C${vitaDx} ${yVita - 10} ${dx} ${P.spalleY + 14} ${dx} ${P.spalleY + 5}`,
     `Q${dx} ${P.spalleY} ${dx - 6} ${P.spalleY}`,
     'Z',
   ].join(' ')
@@ -207,68 +233,61 @@ export function Viso({ P }: { P: Proporzioni; espressione?: 'sorriso' }) {
   )
 }
 
-export function Capelli({ P, colore, stile }: { P: Proporzioni; colore: string; stile: string }) {
+export function Capelli({
+  P,
+  colore,
+  lunghezza,
+}: {
+  P: Proporzioni
+  colore: string
+  lunghezza: LunghezzaCapelli
+}) {
   const { testaX: x, testaY: y, testaR: r } = P
-  const contorno = { fill: colore, stroke: NOTTE, strokeWidth: TRATTO, strokeLinejoin: 'round' as const }
+  const contorno = {
+    fill: colore,
+    stroke: NOTTE,
+    strokeWidth: TRATTO,
+    strokeLinejoin: 'round' as const,
+  }
 
-  if (stile === 'rasato') {
+  // Calotta: la parte che tutte e tre le lunghezze hanno in comune.
+  const calotta = `M${x - r * 1.02} ${y - r * 0.1} a${r * 1.02} ${r * 0.98} 0 0 1 ${r * 2.04} 0`
+
+  if (lunghezza === 'cortissimi') {
+    // rasati: la calotta si ferma alta, la fronte resta scoperta
     return (
       <path
-        d={`M${x - r} ${y - r * 0.28} a${r} ${r * 0.9} 0 0 1 ${r * 2} 0 q${-r} ${-r * 0.32} ${-r * 2} 0 z`}
+        d={`M${x - r * 0.96} ${y - r * 0.36} a${r * 0.96} ${r * 0.86} 0 0 1 ${r * 1.92} 0 q${-r * 0.96} ${-r * 0.26} ${-r * 1.92} 0 z`}
         {...contorno}
       />
     )
   }
 
-  if (stile === 'riccio') {
+  if (lunghezza === 'corti') {
+    // calotta con la frangia che scende un poco sulla fronte
     return (
-      <g {...contorno}>
-        {/* i riccioli si posano sulla calotta, non fluttuano sopra */}
-        {[-0.78, -0.42, 0, 0.42, 0.78].map((f) => (
-          <circle key={f} cx={x + r * f} cy={y - r * (0.62 - 0.22 * f * f)} r={r * 0.34} />
-        ))}
-        <path
-          d={`M${x - r * 1.04} ${y - r * 0.12} a${r * 1.04} ${r * 1.0} 0 0 1 ${r * 2.08} 0 q${-r * 1.04} ${-r * 0.42} ${-r * 2.08} 0 z`}
-        />
-      </g>
+      <path
+        d={`${calotta} q${-r * 0.16} ${-r * 0.46} ${-r * 0.64} ${-r * 0.38} q${-r * 0.4} ${-r * 0.34} ${-r * 0.84} ${-r * 0.02} q${-r * 0.42} ${-r * 0.06} ${-r * 0.56} ${r * 0.4} z`}
+        {...contorno}
+      />
     )
   }
 
-  if (stile === 'lungo') {
-    return (
-      <g {...contorno}>
-        <path
-          d={`M${x - r * 1.06} ${y + r * 0.9} L${x - r * 1.06} ${y - r * 0.16} a${r * 1.06} ${r} 0 0 1 ${r * 2.12} 0 L${x + r * 1.06} ${y + r * 0.9} q${-r * 0.3} ${r * 0.2} ${-r * 0.42} ${-r * 0.1} L${x + r * 0.66} ${y - r * 0.3} q${-r * 0.66} ${r * 0.3} ${-r * 1.32} 0 L${x - r * 0.64} ${y + r * 0.8} q${-r * 0.12} ${r * 0.3} ${-r * 0.42} ${r * 0.1} z`}
-        />
-      </g>
-    )
-  }
-
-  if (stile === 'raccolto') {
-    return (
-      <g {...contorno}>
-        <circle cx={x} cy={y - r * 1.1} r={r * 0.42} />
-        <path
-          d={`M${x - r * 1.02} ${y - r * 0.06} a${r * 1.02} ${r * 0.98} 0 0 1 ${r * 2.04} 0 q${-r * 0.26} ${-r * 0.56} ${-r * 1.02} ${-r * 0.56} q${-r * 0.76} 0 ${-r * 1.02} ${r * 0.56} z`}
-        />
-      </g>
-    )
-  }
-
-  if (stile === 'medio') {
-    return (
-      <g {...contorno}>
-        <path
-          d={`M${x - r * 1.04} ${y + r * 0.3} L${x - r * 1.04} ${y - r * 0.14} a${r * 1.04} ${r} 0 0 1 ${r * 2.08} 0 L${x + r * 1.04} ${y + r * 0.3} q${-r * 0.24} ${r * 0.12} ${-r * 0.36} ${-r * 0.1} L${x + r * 0.68} ${y - r * 0.3} q${-r * 0.68} ${r * 0.28} ${-r * 1.36} 0 L${x - r * 0.68} ${y + r * 0.2} q${-r * 0.12} ${r * 0.22} ${-r * 0.36} ${r * 0.1} z`}
-        />
-      </g>
-    )
-  }
-
-  // corto
+  // lunghi: scende oltre le orecchie fino alle spalle
   return (
     <path
-      d={`M${x - r * 1.02} ${y - r * 0.1} a${r * 1.02} ${r * 0.98} 0 0 1 ${r * 2.04} 0 q${-r * 0.16} ${-r * 0.44} ${-r * 0.62} ${-r * 0.36} q${-r * 0.4} ${-r * 0.34} ${-r * 0.86} ${-r * 0.02} q${-r * 0.42} ${-r * 0.06} ${-r * 0.56} ${r * 0.38} z`}
+      d={[
+        `M${x - r * 1.06} ${y + r * 1.0}`,
+        `L${x - r * 1.06} ${y - r * 0.16}`,
+        `a${r * 1.06} ${r} 0 0 1 ${r * 2.12} 0`,
+        `L${x + r * 1.06} ${y + r * 1.0}`,
+        `q${-r * 0.28} ${r * 0.22} ${-r * 0.44} ${-r * 0.08}`,
+        `L${x + r * 0.66} ${y - r * 0.28}`,
+        `q${-r * 0.66} ${r * 0.3} ${-r * 1.32} 0`,
+        `L${x - r * 0.62} ${y + r * 0.92}`,
+        `q${-r * 0.16} ${r * 0.3} ${-r * 0.44} ${r * 0.08}`,
+        'z',
+      ].join(' ')}
       {...contorno}
     />
   )
@@ -280,7 +299,7 @@ export function TestaCompleta({ P, seed }: Pick<ContestoAvatar, 'P' | 'seed'>) {
     <g>
       <Testa P={P} pelle={colorePelle(seed)} />
       <Viso P={P} />
-      <Capelli P={P} colore={coloreCapelli(seed)} stile={taglio(seed)} />
+      <Capelli P={P} colore={coloreCapelli(seed)} lunghezza={seed.capelli} />
     </g>
   )
 }

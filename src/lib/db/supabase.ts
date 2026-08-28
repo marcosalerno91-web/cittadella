@@ -11,9 +11,9 @@ import { clientSupabase } from '@/lib/db/supabase-client'
 import { conCrm } from '@/lib/engine/crm'
 import { emotionsVuote, financesVuote, fortezzaAllineata, fortezzaVuota } from '@/lib/db/defaults'
 import { bloccoDiVoce } from '@/config/engine'
+import { seedNormalizzato } from '@/lib/avatar/palette'
 import type {
   Advisor,
-  AvatarSeed,
   Client,
   Emotions,
   FamilyMember,
@@ -102,7 +102,6 @@ interface RigaMembro {
 }
 
 function membroDaRiga(r: RigaMembro): FamilyMember {
-  const seed = (r.avatar_seed ?? {}) as Partial<AvatarSeed>
   return {
     id: r.id,
     session_id: r.session_id,
@@ -111,11 +110,9 @@ function membroDaRiga(r: RigaMembro): FamilyMember {
     professione_key: r.professione_key as ProfessioneKey,
     professione_libera: r.professione_libera,
     ruolo_famiglia: r.ruolo_famiglia as RuoloFamiglia,
-    avatar_seed: {
-      pelle: seed.pelle ?? 0,
-      capelli: seed.capelli ?? 0,
-      taglio: seed.taglio ?? 0,
-    },
+    // le sessioni aperte prima della v1.1 hanno un aspetto di forma diversa:
+    // seedNormalizzato ricostruisce quello che manca invece di perderle
+    avatar_seed: seedNormalizzato(r.avatar_seed, r.nome, r.eta),
     ordine: r.ordine,
   }
 }

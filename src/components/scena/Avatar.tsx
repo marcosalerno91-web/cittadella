@@ -6,7 +6,7 @@
  */
 
 import { Braccia, Collo, Gambe, TestaCompleta } from '@/lib/avatar/corpo'
-import { colorePelle, proporzioni, seedDaNome } from '@/lib/avatar/palette'
+import { colorePelle, proporzioni, seedNormalizzato } from '@/lib/avatar/palette'
 import { vestito } from '@/lib/avatar/professioni'
 import { VIEWBOX_ATTR } from '@/lib/avatar/tipi'
 import type { Espressione } from '@/lib/avatar/tipi'
@@ -57,8 +57,8 @@ export function ContenutoAvatar({
   professione,
   seed,
 }: Omit<PropsAvatar, 'className' | 'vivo'>) {
-  const P = proporzioni(eta)
-  const semi = seed ?? seedDaNome(nome, eta)
+  const semi = seedNormalizzato(seed, nome, eta)
+  const P = proporzioni(eta, semi.figura)
   const pelle = colorePelle(semi)
   const abito = vestito(professione)
 
