@@ -92,10 +92,9 @@ Digitando "Marta" l'avatar prende incarnato, colore dei capelli e figura in
 modo deterministico dal nome. E' il momento "wow" della fase 1 e costa zero
 clic.
 
-*Ridotta nella v1.1 (vedi B2):* incarnato e colore dei capelli **non hanno
-alcun controllo** in interfaccia e seguono sempre il nome. La figura e' un
-tentativo che si corregge con un tocco, e da quel momento smette di seguire il
-nome.
+*Ridotta nella v1.1 e corretta nella v1.2:* il nome decide **solo** la figura,
+ed e' un tentativo che si corregge con un tocco. L'incarnato si sceglie. Il
+colore dei capelli non ha comando ma non viene piu' dal nome: segue l'incarnato.
 
 ## D10 — Salvataggio continuo con copia locale
 
@@ -217,13 +216,10 @@ guardando, e infatti se n'e' accorto guardando.
 ## B2 — Quattro tonalita', nessun controllo
 
 Incarnato e colore dei capelli vengono dal nome su quattro tonalita' naturali
-ciascuno e **non hanno alcun controllo in interfaccia**. Toglierli e' stato il
-punto: erano tre selettori da sei varianti che nessuno usava in sala e che
-rubavano attenzione al racconto.
+ciascuno e **non hanno alcun controllo in interfaccia**.
 
-Unica eccezione all'origine dal nome: sopra l'eta' del tempo libero i capelli
-diventano grigi. E' l'eta' a deciderlo, non il nome, perche' un settantenne
-biondo cenere disegnato cosi' sembra un errore.
+*Rovesciata nella v1.2 (vedi B2-bis): l'incarnato torna un comando esplicito.
+Ricavarlo dal nome era sbagliato.*
 
 ## B3 — La figura si deduce dal nome, e sbaglia
 
@@ -298,3 +294,111 @@ domanda e dei report.
 di Tailwind: le tacche degli indicatori, alte 10 px per progetto, venivano
 disegnate alte mezzo pollice. Spostata dentro `@layer base`, dove le utility
 possono scavalcarla quando serve.
+
+
+---
+
+# v1.2 — decisioni prese durante i quattro interventi
+
+## A1-bis — `desiderata` sta sulla voce, non in una lista a parte
+
+Fino alla v1.1 la scelta del cliente era `emotions.priorita_dichiarate`, un
+elenco di chiavi slegato dalle voci a cui si riferiva. Ora e' una colonna
+booleana su `fortress_items`, accanto a `stato`.
+
+Sono due informazioni diverse e non vanno mai confuse: `stato` e' cosa la
+famiglia **ha**, `desiderata` e' cosa **vuole**. La cittadella desiderata e' la
+somma delle due.
+
+La migration travasa i dati una volta sola e **non elimina** la colonna di
+partenza: cancellare dati e' definitivo e una migration non e' il posto per
+farlo. Resta li', inutilizzata, con un commento che lo dice.
+
+## A2-bis — Cio' che c'e' gia' non si tocca
+
+Nella fase del desiderato una costruzione `presente` non e' selezionabile: e'
+gia' nella cittadella. Toccabile e' tutto il resto, senza limite di numero. Se
+il cliente le vuole tutte e' una sua risposta e va registrata cosi'.
+
+## A3-bis — Il colore delle costruzioni passa da variabili CSS
+
+Una costruzione scelta si disegna in sole invece che in salvia, con il contorno
+piu' marcato. Invece di passare una proprieta' a otto componenti di
+architettura, i colori e lo spessore del tratto arrivano da variabili CSS
+ridefinite su una classe. Il contorno principale non porta uno spessore proprio:
+lo eredita dal gruppo.
+
+## A4 — La cittadella completa resta non interattiva
+
+E' la schermata **prima** di quella in cui si sceglie, e serve solo a dare il
+metro oggettivo. Renderla toccabile avrebbe confuso i due momenti: quella dice
+"ecco il massimo possibile", questa dice "ecco cosa voglio io".
+
+## B2-bis — L'incarnato si sceglie
+
+Toglierlo era stato un errore. Ricavare il colore della pelle da un nome e'
+sbagliato e basta, e quattro tonalita' esplicite costano un comando in piu' e
+niente altro.
+
+Quattro e non due: la maggior parte delle persone sta in mezzo, e due tonalita'
+sarebbero un gradino che davanti a una famiglia vera si vede. Il comando in
+interfaccia e' identico.
+
+Il colore dei capelli resta senza comando ma cambia sorgente: segue l'incarnato
+scelto invece del nome. La regola dei capelli grigi sopra l'eta' del tempo
+libero resta.
+
+## C1-bis — I capelli lunghi sono diventati raccolti
+
+Due tentativi, come previsto dal brief. Il primo si fermava alle spalle e
+leggeva come un caschetto; il secondo scendeva oltre e i due lati liberi
+leggevano come codini. Nessuno dei due reggeva accanto a `cortissimi` e `corti`.
+
+Vale quindi la regola di riserva: capelli raccolti con lo chignon. E' una forma
+sola, piatta e chiusa, che si disegna bene in questo stile e in sala si legge
+come "capelli lunghi" lo stesso.
+
+Chi aveva scelto `lunghi` se lo ritrova come `raccolti`: la normalizzazione
+traduce la vecchia chiave invece di riportare tutti a `corti`.
+
+## D1 — Le carte non hanno colore per direzione
+
+`direzione` e `ordine` sono metadato per il consulente e **non si vedono mai a
+schermo**. Le carte sono tutte identiche: fondo sabbia, bordo notte, sole solo
+quando sono selezionate.
+
+Se il cliente vedesse che "paura" e' rossa e "sicurezza" verde risponderebbe a
+un test invece di dire come sta. Il metadato riemerge solo nel dossier.
+
+## D2 — Nessuna icona sulle carte
+
+La parola e' l'unica cosa che conta. Una faccina accanto a "Rassegnazione"
+suggerirebbe come ci si deve sentire, che e' esattamente il contrario del punto.
+
+## D3 — Le chiavi delle emozioni non sono stabili
+
+I due elenchi sono materiale di lavoro del consulente e cambieranno. Una
+sessione salvata con parole che non esistono piu' non deve trovarsi la griglia
+bloccata: le chiavi sconosciute vengono ignorate e non contano verso il limite
+di tre. Chi legge l'export deve guardare `etichetta` e `direzione`, non la chiave.
+
+## D4 — Il testo libero diventa facoltativo
+
+Prima bloccava il passaggio alla fase successiva. Ora le carte bastano e il
+testo e' un di piu': la frase esatta vale piu' di qualsiasi carta, ma non tutti
+i clienti ne dicono una, e l'applicazione non deve fermare la conversazione per
+aspettarla.
+
+## D5 — La riga del movimento sta in evidenza
+
+Nel dossier, sotto le due risposte, dentro un riquadro con il fondo sole. E' il
+punto di partenza dei prospetti: seppellirla in fondo alla pagina l'avrebbe resa
+inutile.
+
+## D6 — La mappa delle emozioni non entra nell'applicazione
+
+Le parole vengono dal lavoro del consulente sul metodo Emotional Power di
+Antonio Meleleo, che e' materiale registrato. Nell'applicazione ci sono solo
+singoli termini in due array: **la mappa, il suo schema grafico, la struttura a
+bolle e le sue diciture non compaiono**, ne' a schermo ne' nei PDF. Il commento
+in `copy.ts` lo dice, cosi' resta scritto anche per chi tocchera' quel file dopo.

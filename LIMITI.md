@@ -49,9 +49,13 @@ visibilita' a tutta l'agenzia.
 
 ## 4. Le policy RLS: ora c'e' una guardia, ma va comunque eseguita la migration
 
-`supabase/migrations/0001_init.sql` e `supabase/tests/isolamento.sql` sono
-scritti. Se sono gia' stati eseguiti sul progetto Supabase, questo punto e'
-chiuso; altrimenti resta aperto.
+`supabase/migrations/0001_init.sql`, `supabase/migrations/0002_cittadella_desiderata.sql`
+e `supabase/tests/isolamento.sql` sono scritti. Se sono gia' stati eseguiti sul
+progetto Supabase, questo punto e' chiuso; altrimenti resta aperto.
+
+**La 0002 va eseguita anche su un database gia' migrato con la 0001**: aggiunge
+`fortress_items.desiderata`, senza la quale la fase del desiderato non salva
+nulla. E' idempotente.
 
 Dalla v1.1 il caso pericoloso non e' piu' silenzioso: se le credenziali
 Supabase sono impostate ma le policy non ci sono, **l'applicazione non parte** e
@@ -107,6 +111,22 @@ vulnerabilita' di build, non di runtime dell'applicazione servita.
 Gli avatar sorridono e basta. L'API e' gia' predisposta (`Espressione` in
 `src/lib/avatar/tipi.ts`), ma il set alternativo non c'e'.
 
+### La riga del movimento e' una frase composta a mano
+
+`leggiSpostamento()` costruisce la frase concatenando conteggi e verbi. Regge i
+casi che si presentano davvero (una, due o tre emozioni per lato), ma non e'
+una vera generazione di linguaggio: con elenchi molto diversi da quelli attuali
+puo' produrre frasi legnose. Sta tutta in `src/lib/engine/emozioni.ts`, in
+venti righe, ed e' facile da riscrivere.
+
+### Gli elenchi delle emozioni sono provvisori
+
+Le due griglie in `copy.ts` sono quelle indicate dal consulente. Quando
+cambieranno, le chiavi delle sessioni gia' salvate non corrisponderanno piu':
+l'applicazione le ignora e la griglia resta usabile, ma quelle scelte sono
+perse. Non c'e' nessuna migrazione delle chiavi, e non ha senso costruirla
+finche' gli elenchi non si stabilizzano.
+
 ### La figura dedotta dal nome sbaglia sui nomi stranieri
 
 L'euristica conosce le desinenze italiane e due liste corte di eccezioni. Su
@@ -134,6 +154,14 @@ Hanno lo stesso corpo di legno, lo stesso tetto corallo e la stessa porta ad
 arco, e il cliente li riconosce come lo stesso edificio — ma sono due
 componenti separati, uno di fronte e uno in assonometria. Cambiando l'aspetto
 del granaio vanno toccati entrambi.
+
+### La cittadella desiderata non distingue "voglio" da "mi serve"
+
+`desiderata` e' un booleano. Non c'e' modo di registrare che il cliente vuole
+una cosa **molto** e un'altra **se avanza**, ne' di ordinare le scelte per
+importanza. In sala il consulente lo scrive nelle note della voce. Se servira'
+una graduazione, andra' aggiunta come colonna separata: il booleano resta
+com'e', perche' e' quello che il cliente tocca.
 
 ### Le costruzioni sono lo stesso disegno per tutte le fasce d'eta'
 

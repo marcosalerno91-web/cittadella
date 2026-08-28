@@ -50,8 +50,9 @@ RLS). Quando non lo sono, usa il driver su file. La scelta avviene in
 ## Preparare Supabase
 
 1. Crea un progetto su Supabase.
-2. Nel SQL editor, esegui `supabase/migrations/0001_init.sql`. E' idempotente:
-   si puo' rieseguire.
+2. Nel SQL editor, esegui **in ordine** le migration di
+   `supabase/migrations/`: `0001_init.sql` e poi `0002_cittadella_desiderata.sql`.
+   Sono idempotenti: si possono rieseguire.
 3. Esegui `supabase/tests/isolamento.sql` e leggi i NOTICE: devono essere tutti
    `PASSA`. Gira dentro una transazione che si annulla da sola.
 
@@ -94,7 +95,9 @@ src/
     db/                        Repository, driver Supabase e driver locale
     engine/                    CRM, fortezza, ciclo di vita
 supabase/
-  migrations/0001_init.sql     schema + RLS
+  migrations/
+    0001_init.sql              schema + RLS
+    0002_cittadella_desiderata.sql   cio' che il cliente vuole
   tests/isolamento.sql         prova delle policy
 seed/famiglia-demo.json        il nucleo con cui si collauda il flusso
 docs/export-schema.md          contratto dell'export
@@ -102,8 +105,9 @@ docs/export-schema.md          contratto dell'export
 
 ## I due file da cui si tara tutto
 
-- **`src/content/copy.ts`** — ogni parola che compare a schermo. Si riscrive da
-  cima a fondo senza toccare una riga di logica.
+- **`src/content/copy.ts`** — ogni parola che compare a schermo, compresi i due
+  elenchi delle emozioni. Si riscrive da cima a fondo senza toccare una riga di
+  logica: aggiungere, togliere o riordinare una carta e' una riga.
 - **`src/config/engine.ts`** — eta' di confine del ciclo di vita, soglie della
   scorta, ordine e peso delle cinte, elenco delle voci della fortezza, tempi
   delle animazioni.
